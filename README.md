@@ -33,8 +33,8 @@ You need to grant additional permissions and set an environment variable. You ca
 **Option A - Using Flatseal (recommended for most users):**
 1. Install Flatseal from your software center if not already installed
 2. Open Flatseal and select "EDMarketConnector" from the list
-3. Under "Socket" enable "Wayland windowing system (`socket=wayland`)"
-4. Scroll down to "Filesystem" and enable "All system libraries, executables and static data (`filesystem=host-os`)"
+3. Under "Socket" enable "Wayland windowing system" (`socket=wayland`)
+4. Scroll down to "Filesystem" and enable "All system libraries, executables and static data" (`filesystem=host-os`)
 5. Scroll to "Environment" and add the following variable:
    - `EDMC_SPANSH_ROUTER_XCLIP=/run/host/usr/bin/wl-copy`
 6. Restart EDMC
