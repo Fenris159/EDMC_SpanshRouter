@@ -101,14 +101,14 @@ class SpanshRouter():
         self.clear_route_btn = tk.Button(self.frame, text="Clear route", command=self.clear_route)
 
         row = 0
-        self.waypoint_prev_btn.grid(row=row, column=0, padx=5, pady=10, sticky=tk.W)
-        self.dist_prev_lbl.grid(row=row, column=1, padx=5, pady=10, sticky=tk.W)
+        self.waypoint_prev_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
+        self.dist_prev_lbl.grid(row=row, column=2, padx=5, pady=10, sticky=tk.W)
         row += 1
-        self.waypoint_btn.grid(row=row, column=0, padx=5, pady=10, sticky=tk.W)
-        self.dist_remaining_lbl.grid(row=row, column=1, padx=5, pady=10, sticky=tk.W)
+        self.waypoint_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
+        self.dist_remaining_lbl.grid(row=row, column=2, padx=5, pady=10, sticky=tk.W)
         row += 1
-        self.waypoint_next_btn.grid(row=row, column=0, padx=5, pady=10, sticky=tk.W)
-        self.dist_next_lbl.grid(row=row, column=1, padx=5, pady=10, sticky=tk.W)
+        self.waypoint_next_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
+        self.dist_next_lbl.grid(row=row, column=2, padx=5, pady=10, sticky=tk.W)
         row += 1
         self.bodies_lbl.grid(row=row, columnspan=2, sticky=tk.W)
         row += 1
