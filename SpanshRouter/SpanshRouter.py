@@ -352,29 +352,72 @@ class SpanshRouter():
             self.parent.update()
 
     def goto_next_waypoint(self):
-        if self.offset < self.route.__len__()-1:
+        # allow manual navigation even if offset wasn't set by journal events yet
+        if self.route.__len__() == 0:
+            return
+
+        if not hasattr(self, "offset") or self.offset is None:
+            self.offset = 0
+
+        if self.offset < self.route.__len__() - 1:
             self.update_route(1)
 
     def goto_prev_waypoint(self):
+        # allow manual navigation even if offset wasn't set by journal events yet
+        if self.route.__len__() == 0:
+            return
+
+        if not hasattr(self, "offset") or self.offset is None:
+            self.offset = 0
+
         if self.offset > 0:
             self.update_route(-1)
 
     def update_route(self, direction=1):
-        if direction > 0:
-            if self.route[self.offset][1] not in [None, "", []]:
-                if not self.galaxy:
-                    self.jumps_left -= int(self.route[self.offset][1])
-                else:
-                    self.jumps_left -= 1
-            self.offset += 1
-        else:
-            self.offset -= 1
-            if self.route[self.offset][1] not in [None, "", []]:
-                if not self.galaxy:
-                    self.jumps_left += int(self.route[self.offset][1])
-                else:
-                    self.jumps_left += 1
+        # Guard: no route -> nothing to do
+        if self.route.__len__() == 0:
+            self.next_stop = "No route planned"
+            self.update_gui()
+            return
 
+        # Ensure offset exists and is within bounds
+        if not hasattr(self, "offset") or self.offset is None:
+            self.offset = 0
+
+        # clamp offset into valid range before operating
+        if self.offset < 0:
+            self.offset = 0
+        if self.offset >= self.route.__len__():
+            self.offset = self.route.__len__() - 1
+
+        try:
+            if direction > 0:
+                # subtract jumps for current offset (if present) then advance
+                if self.route[self.offset][1] not in [None, "", []]:
+                    if not self.galaxy:
+                        self.jumps_left -= int(self.route[self.offset][1])
+                    else:
+                        self.jumps_left -= 1
+                # advance but clamp
+                if self.offset < self.route.__len__() - 1:
+                    self.offset += 1
+            else:
+                # move back, but avoid negative indexes
+                if self.offset > 0:
+                    self.offset -= 1
+                    if self.route[self.offset][1] not in [None, "", []]:
+                        if not self.galaxy:
+                            self.jumps_left += int(self.route[self.offset][1])
+                        else:
+                            self.jumps_left += 1
+        except Exception:
+            # If something odd in route contents, try to recover by resetting offset to 0
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+            logger.warning(''.join('!! ' + line for line in lines))
+            self.offset = max(0, min(self.offset, self.route.__len__()-1))
+
+        # Now update next_stop and GUI according to new offset
         if self.offset >= self.route.__len__():
             self.next_stop = "End of the road!"
             self.update_gui()
@@ -387,6 +430,7 @@ class SpanshRouter():
 
             self.update_gui()
             self.copy_waypoint()
+
         self.save_offset()
 
     def goto_changelog_page(self):
