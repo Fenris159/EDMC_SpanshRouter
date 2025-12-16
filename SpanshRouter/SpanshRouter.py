@@ -606,41 +606,47 @@ class SpanshRouter():
                 self.show_error("(1) An error occured while reading the file.")
 
     def plot_csv(self, filename, clear_previous_route=True):
-       with io.open(filename, 'r', encoding='utf-8-sig', newline='') as csvfile:
+        with io.open(filename, 'r', encoding='utf-8-sig', newline='') as csvfile:
             self.roadtoriches = False
             self.fleetcarrier = False
             self.galaxy = False
-        
+
             if clear_previous_route:
                 self.clear_route(False)
-            
-            route_reader = csv.DictReader(csvfile)
-            
-            # Get column header names as string
-            headerline = ','.join(route_reader.fieldnames)
 
-            # Define the differnt internal formats based on the CSV header row
+            route_reader = csv.DictReader(csvfile)
+
+            # Get column header names as string (preserve order)
+            headerline = ','.join(route_reader.fieldnames) if route_reader.fieldnames else ""
+
+            # Define the different internal formats based on the CSV header row
             internalbasicheader1 = "System Name"
             internalbasicheader2 = "System Name,Jumps"
             internalrichesheader = "System Name,Jumps,Body Name,Body Subtype"
             internalfleetcarrierheader = "System Name,Jumps,Restock Tritium"
             internalgalaxyheader = "System Name,Refuel"
-            # Define the differnt import file formats based on the CSV header row
+            # External/other import formats
             neutronimportheader = "System Name,Distance To Arrival,Distance Remaining,Neutron Star,Jumps"
             road2richesimportheader = "System Name,Body Name,Body Subtype,Is Terraformable,Distance To Arrival,Estimated Scan Value,Estimated Mapping Value,Jumps"
             fleetcarrierimportheader = "System Name,Distance,Distance Remaining,Tritium in tank,Tritium in market,Fuel Used,Icy Ring,Pristine,Restock Tritium"
             galaxyimportheader = "System Name,Distance,Distance Remaining,Fuel Left,Fuel Used,Refuel,Neutron Star"
 
-            # Handle plain CSVs (two variants) and the neutron-import format separately.
+            # Helper to check and pick distance keys flexibly
+            def get_distance_fields(row):
+                # prefer "Distance To Arrival" (neutron style), fall back to "Distance"
+                dist_to_arrival = row.get("Distance To Arrival", "") or row.get("Distance", "")
+                dist_remaining = row.get("Distance Remaining", "") or ""
+                return dist_to_arrival, dist_remaining
+
+            # Handle neutron-import style
             if headerline == neutronimportheader:
                 # CSV has: System Name,Distance To Arrival,Distance Remaining,Neutron Star,Jumps
                 for row in route_reader:
                     if row not in (None, "", []):
-                        # Keep index 1 as "jumps" for compatibility with existing code,
-                        # but also store distance_to_arrival and distance_remaining at indexes 2 and 3.
                         jumps = row.get(self.jumps_header, "")
                         dist_to_arrival = row.get("Distance To Arrival", "")
                         dist_remaining = row.get("Distance Remaining", "")
+                        # keep index 1 compatible with existing code (jumps)
                         self.route.append([
                             row[self.system_header],
                             jumps,
@@ -653,23 +659,26 @@ class SpanshRouter():
                             except:
                                 pass
 
+            # legacy/simple CSV: System Name [, Jumps]
             elif (headerline == internalbasicheader1) or (headerline == internalbasicheader2):
-                # legacy/simple CSV: System Name [, Jumps]
                 for row in route_reader:
                     if row not in (None, "", []):
                         self.route.append([
                             row[self.system_header],
-                            row.get(self.jumps_header, "") # Jumps column is optional
+                            row.get(self.jumps_header, "")  # Jumps column is optional
                         ])
-                        if row.get(self.jumps_header): # Jumps column is optional
-                            self.jumps_left += int(row[self.jumps_header])
+                        if row.get(self.jumps_header):  # Jumps column is optional
+                            try:
+                                self.jumps_left += int(row[self.jumps_header])
+                            except:
+                                pass
 
+            # internal riches format (lists stored as Python-likes)
             elif headerline == internalrichesheader:
                 self.roadtoriches = True
 
                 for row in route_reader:
                     if row not in (None, "", []):
-                        # Convert string representations of lists to actual Lists
                         bodynames = ast.literal_eval(row[self.bodyname_header])
                         bodysubtypes = ast.literal_eval(row[self.bodysubtype_header])
 
@@ -679,8 +688,12 @@ class SpanshRouter():
                             bodynames,
                             bodysubtypes
                         ])
-                        self.jumps_left += int(row[self.jumps_header])
+                        try:
+                            self.jumps_left += int(row[self.jumps_header])
+                        except:
+                            pass
 
+            # internal fleetcarrier format
             elif headerline == internalfleetcarrierheader:
                 self.fleetcarrier = True
 
@@ -691,8 +704,12 @@ class SpanshRouter():
                             row[self.jumps_header],
                             row[self.restocktritium_header]
                         ])
-                        self.jumps_left += int(row[self.jumps_header])
+                        try:
+                            self.jumps_left += int(row[self.jumps_header])
+                        except:
+                            pass
 
+            # road2riches import
             elif headerline == road2richesimportheader:
                 self.roadtoriches = True
 
@@ -723,29 +740,72 @@ class SpanshRouter():
                         bodynames.clear()
                         bodysubtypes.clear()
 
-                        self.jumps_left += int(row[self.jumps_header])
+                        try:
+                            self.jumps_left += int(row[self.jumps_header])
+                        except:
+                            pass
 
+            # external fleetcarrier import
             elif headerline == fleetcarrierimportheader:
                 self.fleetcarrier = True
 
                 for row in route_reader:
                     if row not in (None, "", []):
+                        # treat every row as one jump in this import format
                         self.route.append([
                             row[self.system_header],
-                            1, # Jumps is faked as every row is 1 jump
-                            row[self.restocktritium_header]
+                            1,  # Jumps is faked as every row is 1 jump
+                            row.get(self.restocktritium_header, "")
                         ])
-                        self.jumps_left += 1 # Jumps is faked as every row is 1 jump
-            elif (headerline == internalgalaxyheader) or (headerline == galaxyimportheader):
+                        self.jumps_left += 1
+
+            # galaxy-type imports: handle both the long upstream format
+            # and the simpler internal 'System Name,Refuel' header.
+            # We detect galaxy files by presence of "Refuel" in headerline.
+            elif "Refuel" in headerline and self.system_header in headerline:
                 self.galaxy = True
 
                 for row in route_reader:
                     if row not in (None, "", []):
-                        self.route.append([
-                            row[self.system_header],
-                            row[self.refuel_header]
-                        ])
+                        system = row.get(self.system_header, "")
+                        # keep route[i][1] as Refuel so existing galaxy logic keeps working
+                        refuel = row.get(self.refuel_header, "")
+                        # attempt to read distances if present (either "Distance" or "Distance To Arrival")
+                        dist_to_arrival, dist_remaining = get_distance_fields(row)
+
+                        # Build route row:
+                        # - always keep [system, refuel] (so update_route / pleaserefuel continue to work)
+                        # - append distances if we have them so compute_distances can display LY
+                        route_row = [system, refuel]
+                        if dist_to_arrival != "" or dist_remaining != "":
+                            route_row.append(dist_to_arrival)
+                            route_row.append(dist_remaining)
+
+                        self.route.append(route_row)
+
+                        # galaxy logic: treat each row as one jump for jump counting
                         self.jumps_left += 1
+
+            else:
+                # Unknown header: try a best-effort basic parse as System Name,Jumps
+                for row in route_reader:
+                    if row not in (None, "", []):
+                        # fallback to first two columns if possible
+                        try:
+                            system = row.get(self.system_header, "")
+                            jumps = row.get(self.jumps_header, "")
+                        except Exception:
+                            # as ultimate fallback, iterate values
+                            vals = list(row.values())
+                            system = vals[0] if len(vals) > 0 else ""
+                            jumps = vals[1] if len(vals) > 1 else ""
+                        self.route.append([system, jumps])
+                        if jumps:
+                            try:
+                                self.jumps_left += int(jumps)
+                            except:
+                                pass
+
             # After loading route, initialize current waypoint
             if len(self.route) > 0:
                 self.offset = 0
@@ -753,7 +813,6 @@ class SpanshRouter():
                 # Compute LY distances immediately (so GUI shows them before pressing arrows)
                 self.compute_distances()
                 self.update_gui()
-
             else:
                 self.show_error("Could not detect file format")
 
@@ -764,90 +823,169 @@ class SpanshRouter():
             dest = self.dest_ac.get().strip()
             efficiency = self.efficiency_slider.get()
 
-            # Hide autocomplete lists in case they're still shown
+            # Hide autocomplete lists
             self.source_ac.hide_list()
             self.dest_ac.hide_list()
 
-            if (    source  and source != self.source_ac.placeholder and
-                    dest    and dest != self.dest_ac.placeholder    ):
+            # Validate inputs
+            if not source or source == self.source_ac.placeholder:
+                self.show_error("Please provide a starting system.")
+                return
+            if not dest or dest == self.dest_ac.placeholder:
+                self.show_error("Please provide a destination system.")
+                return
+
+            # Range
+            try:
+                range_ly = float(self.range_entry.get())
+            except ValueError:
+                self.show_error("Invalid range")
+                return
+
+            job_url = "https://spansh.co.uk/api/route?"
+
+            # Submit plot request
+            try:
+                results = requests.post(
+                    job_url,
+                    params={
+                        "efficiency": efficiency,
+                        "range": range_ly,
+                        "from": source,
+                        "to": dest
+                    },
+                    headers={'User-Agent': "EDMC_SpanshRouter 1.0"}
+                )
+            except Exception as e:
+                logger.warning(f"Failed to submit route query: {e}")
+                self.show_error(self.plot_error)
+                return
+
+            # Spansh returned immediate error
+            if results.status_code != 202:
+                logger.warning(
+                    f"Failed to query plotted route from Spansh: "
+                    f"{results.status_code}; text: {results.text}"
+                )
 
                 try:
-                    range_ly = float(self.range_entry.get())
-                except ValueError:
-                    self.show_error("Invalid range")
+                    failure = json.loads(results.content)
+                except:
+                    failure = {}
+
+                if results.status_code == 400 and "error" in failure:
+                    self.show_error(failure["error"])
+                    if "starting system" in failure["error"]:
+                        self.source_ac["fg"] = "red"
+                    if "finishing system" in failure["error"]:
+                        self.dest_ac["fg"] = "red"
+                else:
+                    self.show_error(self.plot_error)
+                return
+
+            # Otherwise: accepted, poll job state
+            self.enable_plot_gui(False)
+            response = json.loads(results.content)
+            job = response.get("job")
+            tries = 0
+            route_response = None
+
+            while tries < 20:
+                results_url = f"https://spansh.co.uk/api/results/{job}"
+
+                try:
+                    route_response = requests.get(results_url, timeout=5)
+                except:
+                    route_response = None
+                    break
+
+                if route_response.status_code != 202:
+                    break
+
+                tries += 1
+                sleep(1)
+
+            # Did we get a real final response?
+            if not route_response:
+                logger.warning("Query to Spansh timed out")
+                self.enable_plot_gui(True)
+                self.show_error("The query to Spansh timed out. Please try again.")
+                return
+
+            # Final response OK
+            if route_response.status_code == 200:
+                try:
+                    route = json.loads(route_response.content)["result"]["system_jumps"]
+                except Exception as e:
+                    logger.warning(f"Invalid data from Spansh: {e}")
+                    self.enable_plot_gui(True)
+                    self.show_error(self.plot_error)
                     return
 
-                job_url="https://spansh.co.uk/api/route?"
+                # Clear previous route silently
+                self.clear_route(show_dialog=False)
 
-                results = requests.post(job_url, params={
-                    "efficiency": efficiency,
-                    "range": range_ly,
-                    "from": source,
-                    "to": dest
-                }, headers={'User-Agent': "EDMC_SpanshRouter 1.0"})
+                # Fill route with distance-aware entries (API plot)
+                for waypoint in route:
+                    system = waypoint.get("system", "")
+                    jumps = waypoint.get("jumps", 0)
 
-                if results.status_code == 202:
-                    self.enable_plot_gui(False)
+                    # Map API distance fields to internal format
+                    distance_to_arrival = waypoint.get("distance_jumped", "")
+                    distance_remaining = waypoint.get("distance_left", "")
 
-                    tries = 0
-                    while(tries < 20):
-                        response = json.loads(results.content)
-                        job = response["job"]
+                    self.route.append([
+                        system,
+                        str(jumps),
+                        distance_to_arrival,
+                        distance_remaining
+                    ])
 
-                        results_url = "https://spansh.co.uk/api/results/" + job
-                        route_response = requests.get(results_url, timeout=5)
-                        if route_response.status_code != 202:
-                            break
-                        tries += 1
-                        sleep(1)
+                    try:
+                        self.jumps_left += int(jumps)
+                    except:
+                        pass
 
-                    if route_response:
-                        if route_response.status_code == 200:
-                            route = json.loads(route_response.content)["result"]["system_jumps"]
-                            self.clear_route(show_dialog=False)
-                            for waypoint in route:
-                                self.route.append([waypoint["system"], str(waypoint["jumps"])])
-                                self.jumps_left += waypoint["jumps"]
-                            self.enable_plot_gui(True)
-                            self.show_plot_gui(False)
-                            self.offset = 1 if self.route[0][0] == monitor.state['SystemName'] else 0
-                            self.next_stop = self.route[self.offset][0]
-                            self.compute_distances()
-                            self.copy_waypoint()
-                            self.update_gui()
-                            self.save_all_route()
-                        else:
-                            logger.warning(f"Failed to query plotted route from Spansh, code: {str(route_response.status_code)}; text: {route_response.text}")
-                            self.enable_plot_gui(True)
-                            failure = json.loads(results.content)
+                self.enable_plot_gui(True)
+                self.show_plot_gui(False)
 
-                            if route_response.status_code == 400 and "error" in failure:
-                                self.show_error(failure["error"])
-                                if "starting system" in failure["error"]:
-                                    self.source_ac["fg"] = "red"
-                                if "finishing system" in failure["error"]:
-                                    self.dest_ac["fg"] = "red"
-                            else:
-                                self.show_error(self.plot_error)
-                    else:
-                        logger.warning("Query to Spansh timed out")
-                        self.enable_plot_gui(True)
-                        self.show_error("The query to Spansh was too long and timed out, please try again.")
-                else:
-                    logger.warning(f"Failed to query plotted route from Spansh: code {str(results.status_code)}; text: {results.text}")
-                    self.enable_plot_gui(True)
-                    failure = json.loads(results.content)
+                # Compute offset
+                self.offset = (
+                    1
+                    if self.route and self.route[0][0] == monitor.state.get('SystemName')
+                    else 0
+                )
+                self.next_stop = self.route[self.offset][0] if self.route else ""
 
-                    if results.status_code == 400 and "error" in failure:
-                        self.show_error(failure["error"])
-                        if "starting system" in failure["error"]:
-                            self.source_ac["fg"] = "red"
-                        if "finishing system" in failure["error"]:
-                            self.dest_ac["fg"] = "red"
-                    else:
-                        self.show_error(self.plot_error)
+                # Update GUI and persist
+                self.compute_distances()
+                self.copy_waypoint()
+                self.update_gui()
+                self.save_all_route()
+                return
 
-        except:
+            # Otherwise: Spansh error on final poll
+            logger.warning(
+                f"Failed final route fetch: {route_response.status_code}; "
+                f"text: {route_response.text}"
+            )
+
+            try:
+                failure = json.loads(results.content)
+            except:
+                failure = {}
+
+            self.enable_plot_gui(True)
+            if route_response.status_code == 400 and "error" in failure:
+                self.show_error(failure["error"])
+                if "starting system" in failure["error"]:
+                    self.source_ac["fg"] = "red"
+                if "finishing system" in failure["error"]:
+                    self.dest_ac["fg"] = "red"
+            else:
+                self.show_error(self.plot_error)
+
+        except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
             logger.warning(''.join('!! ' + line for line in lines))
@@ -932,41 +1070,87 @@ class SpanshRouter():
         self.save_offset()
 
     def save_route(self):
-        if self.route.__len__() != 0:
-            with open(self.save_route_path, 'w', newline='') as csvfile:
-                if self.roadtoriches:
-                    # Write output: System, Jumps, Bodies[], BodySubTypes[]
-                    fieldnames = [self.system_header, self.jumps_header, self.bodyname_header, self.bodysubtype_header]
-                    writer = csv.writer(csvfile)
-                    writer.writerow(fieldnames)
-                    for row in self.route:
-                        writer.writerow(row)
+        """Save current route to disk.
 
-                if self.fleetcarrier:
-                    # Write output: System, Jumps, 
-                    fieldnames = [self.system_header, self.jumps_header, self.restocktritium_header]
-                    writer = csv.writer(csvfile)
-                    writer.writerow(fieldnames)
-                    for row in self.route:
-                        writer.writerow(row)
-
-                if self.galaxy:
-                    # Write output: System, Refuel
-                    fieldnames = [self.system_header, self.refuel_header]
-                    writer = csv.writer(csvfile)
-                    writer.writerow(fieldnames)
-                    writer.writerows(self.route)
-                else:
-                    # Write output: System, Jumps
-                    fieldnames = [self.system_header, self.jumps_header]
-                    writer = csv.writer(csvfile)
-                    writer.writerow(fieldnames)
-                    writer.writerows(self.route)
-        else:
+        For galaxy routes we write System Name,Refuel,Distance To Arrival,Distance Remaining
+        so that distances are preserved across restarts and LY display works like for neutron.
+        Other formats keep previous behaviour.
+        """
+        # If no route, try to remove saved files and exit
+        if len(self.route) == 0:
             try:
                 os.remove(self.save_route_path)
             except:
                 logger.info("No route to delete")
+            return
+
+        try:
+            if self.roadtoriches:
+                fieldnames = [self.system_header, self.jumps_header, self.bodyname_header, self.bodysubtype_header]
+                with open(self.save_route_path, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(fieldnames)
+                    for row in self.route:
+                        writer.writerow(row)
+                return
+
+            if self.fleetcarrier:
+                fieldnames = [self.system_header, self.jumps_header, self.restocktritium_header]
+                with open(self.save_route_path, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(fieldnames)
+                    for row in self.route:
+                        writer.writerow(row)
+                return
+
+            if self.galaxy:
+                # Save galaxy routes including distances if present:
+                # Write header so reload can restore distances: System Name,Refuel,Distance To Arrival,Distance Remaining
+                fieldnames = [self.system_header, self.refuel_header, "Distance To Arrival", "Distance Remaining"]
+                with open(self.save_route_path, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(fieldnames)
+                    for row in self.route:
+                        # normalize row into 4 columns:
+                        system = row[0] if len(row) > 0 else ""
+                        refuel = row[1] if len(row) > 1 else ""
+                        dist_to_arrival = row[2] if len(row) > 2 else ""
+                        dist_remaining = row[3] if len(row) > 3 else ""
+                        writer.writerow([system, refuel, dist_to_arrival, dist_remaining])
+                return
+
+            # Generic routes: check if any row contains distance columns (len >= 4)
+            has_distance_columns = any(len(row) >= 4 for row in self.route)
+
+            if has_distance_columns:
+                # Write as neutron-import style:
+                # System Name,Distance To Arrival,Distance Remaining,Neutron Star,Jumps
+                fieldnames = ["System Name", "Distance To Arrival", "Distance Remaining", "Neutron Star", "Jumps"]
+                with open(self.save_route_path, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(fieldnames)
+                    for row in self.route:
+                        # Normalize row into 5 columns; Neutron Star unknown => empty string
+                        system = row[0] if len(row) > 0 else ""
+                        jumps = row[1] if len(row) > 1 else ""
+                        dist_to_arrival = row[2] if len(row) > 2 else ""
+                        dist_remaining = row[3] if len(row) > 3 else ""
+                        neutron_flag = ""  # unknown from our data; leave empty
+                        writer.writerow([system, dist_to_arrival, dist_remaining, neutron_flag, jumps])
+                return
+
+            # Fallback: simple System, Jumps
+            fieldnames = [self.system_header, self.jumps_header]
+            with open(self.save_route_path, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(fieldnames)
+                writer.writerows(self.route)
+
+        except Exception:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+            logger.warning(''.join('!! ' + line for line in lines))
+            self.show_error("An error occured while writing the route to disk.")
 
     def save_offset(self):
         if self.route.__len__() != 0:
