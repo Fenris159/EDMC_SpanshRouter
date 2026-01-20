@@ -3176,7 +3176,7 @@ class SpanshRouter():
     def update_fleet_carrier_system_display(self):
         """
         Update the fleet carrier system location display under the dropdown.
-        Uses the same data source as the "View All" window (CSV data).
+        Mirrors exactly how the "View All" window displays the system column.
         """
         if not self.fleet_carrier_system_label:
             return
@@ -3188,20 +3188,23 @@ class SpanshRouter():
                 self.fleet_carrier_system_label.config(text="System: Unknown", foreground="gray")
                 return
             
-            # Find the selected carrier by callsign
+            # Find the selected carrier by callsign (same logic as "View All" window)
+            # Use case-insensitive matching and strip whitespace to be more robust
             carrier = None
             if self.selected_carrier_callsign:
+                selected_callsign_clean = self.selected_carrier_callsign.strip().upper()
                 for c in carriers:
-                    if c.get('callsign', '').strip() == self.selected_carrier_callsign.strip():
+                    carrier_callsign_clean = c.get('callsign', '').strip().upper()
+                    if carrier_callsign_clean == selected_callsign_clean:
                         carrier = c
                         break
             
-            # If no carrier selected, use the most recently updated carrier
+            # If no carrier selected, use the most recently updated carrier (same as "View All" window)
             if not carrier:
                 try:
                     sorted_carriers = sorted(
                         carriers,
-                        key=lambda x: str(x.get('last_updated', '')),
+                        key=lambda x: x.get('last_updated', ''),
                         reverse=True
                     )
                     if sorted_carriers:
@@ -3211,11 +3214,18 @@ class SpanshRouter():
                     if carriers:
                         carrier = carriers[0]
             
-            # Get system from carrier data
+            # Get system exactly as "View All" window does (line 2735: system = carrier.get('current_system', 'Unknown'))
             if carrier:
-                current_system = carrier.get('current_system', '').strip()
-                if current_system:
-                    self.fleet_carrier_system_label.config(text=f"System: {current_system}", foreground="")
+                # Use exact same logic as "View All" window
+                system = carrier.get('current_system', 'Unknown')
+                # Handle empty/whitespace strings - treat as 'Unknown' (same as "View All" window would display)
+                if not system or (isinstance(system, str) and not system.strip()):
+                    system = 'Unknown'
+                
+                # Display exactly as shown in "View All" window (line 2874 displays system directly)
+                # If system is 'Unknown' or empty, show grayed out
+                if system and system != 'Unknown':
+                    self.fleet_carrier_system_label.config(text=f"System: {system}", foreground="")
                 else:
                     self.fleet_carrier_system_label.config(text="System: Unknown", foreground="gray")
             else:
@@ -3526,7 +3536,7 @@ class SpanshRouter():
     def update_fleet_carrier_balance_display(self):
         """
         Update the fleet carrier credit balance display below the Tritium display.
-        Uses the same data source as the "View All" window (CSV data).
+        Mirrors exactly how the "View All" window displays the balance column.
         """
         if not self.fleet_carrier_balance_label:
             return
@@ -3538,20 +3548,23 @@ class SpanshRouter():
                 self.fleet_carrier_balance_label.config(text="Balance: Unknown", foreground="gray")
                 return
             
-            # Find the selected carrier by callsign
+            # Find the selected carrier by callsign (same logic as "View All" window)
+            # Use case-insensitive matching and strip whitespace to be more robust
             carrier = None
             if self.selected_carrier_callsign:
+                selected_callsign_clean = self.selected_carrier_callsign.strip().upper()
                 for c in carriers:
-                    if c.get('callsign', '').strip() == self.selected_carrier_callsign.strip():
+                    carrier_callsign_clean = c.get('callsign', '').strip().upper()
+                    if carrier_callsign_clean == selected_callsign_clean:
                         carrier = c
                         break
             
-            # If no carrier selected, use the most recently updated carrier
+            # If no carrier selected, use the most recently updated carrier (same as "View All" window)
             if not carrier:
                 try:
                     sorted_carriers = sorted(
                         carriers,
-                        key=lambda x: str(x.get('last_updated', '')),
+                        key=lambda x: x.get('last_updated', ''),
                         reverse=True
                     )
                     if sorted_carriers:
@@ -3561,17 +3574,18 @@ class SpanshRouter():
                     if carriers:
                         carrier = carriers[0]
             
-            # Get balance from carrier data (same logic as "View All" window)
+            # Get balance exactly as "View All" window does (lines 2740, 2748, 2767-2775)
             if carrier:
                 balance_raw = carrier.get('balance')
                 
-                # Check if balance is missing (same logic as "View All" window)
+                # Check if balance is missing (exact same logic as "View All" window line 2748)
                 balance_missing = 'balance' not in carrier or balance_raw is None or (isinstance(balance_raw, str) and balance_raw.strip() == '')
                 
                 if balance_missing:
+                    # Show "Unknown" instead of "Needs Update" for main UI (more user-friendly)
                     self.fleet_carrier_balance_label.config(text="Balance: Unknown", foreground="gray")
                 else:
-                    # Format balance with commas (same as "View All" window)
+                    # Format balance with commas (exact same logic as "View All" window lines 2771-2775)
                     try:
                         balance_int = int(balance_raw) if balance_raw else 0
                         balance_formatted = f"{balance_int:,}"
@@ -3579,7 +3593,8 @@ class SpanshRouter():
                         self.fleet_carrier_balance_label.config(text=display_text, foreground="")
                     except (ValueError, TypeError):
                         # If conversion fails, try to display as string
-                        display_text = f"Balance: {balance_raw} cr" if balance_raw else "Balance: Unknown"
+                        balance_formatted = str(balance_raw) if balance_raw else "Unknown"
+                        display_text = f"Balance: {balance_formatted} cr"
                         self.fleet_carrier_balance_label.config(text=display_text, foreground="gray")
             else:
                 self.fleet_carrier_balance_label.config(text="Balance: Unknown", foreground="gray")
