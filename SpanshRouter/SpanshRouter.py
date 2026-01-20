@@ -95,6 +95,12 @@ class SpanshRouter():
     #   -- GUI part --
     def init_gui(self, parent):
         self.parent = parent
+        # Check if frame already exists - if so, destroy it to prevent duplicates
+        if hasattr(self, 'frame') and self.frame:
+            try:
+                self.frame.destroy()
+            except Exception:
+                pass
         self.frame = tk.Frame(parent, borderwidth=2)
         self.frame.grid(sticky=tk.NSEW, columnspan=2)
         
@@ -326,9 +332,22 @@ class SpanshRouter():
             self.bodies_lbl, self.fleetrestock_lbl, self.refuel_lbl, self.find_trit_btn
         ]
         
-        # Hide all widgets first (except fleet carrier status which is always visible)
-        for widget in route_widgets + plotting_widgets + basic_controls + info_labels:
-            if widget not in [self.fleet_carrier_status_label, self.fleet_carrier_combobox, self.fleet_carrier_details_btn, self.fleet_carrier_inara_btn, self.fleet_carrier_system_label, self.fleet_carrier_icy_rings_label, self.fleet_carrier_icy_rings_cb, self.fleet_carrier_pristine_label, self.fleet_carrier_pristine_cb, self.fleet_carrier_tritium_label, self.fleet_carrier_balance_label]:
+        # Hide all widgets first (except fleet carrier status and basic controls which are always visible)
+        # Fleet carrier widgets should never be hidden or repositioned
+        fleet_carrier_widgets = [
+            self.fleet_carrier_status_label, self.fleet_carrier_combobox, 
+            self.fleet_carrier_details_btn, self.fleet_carrier_inara_btn, 
+            self.fleet_carrier_system_label, self.fleet_carrier_icy_rings_label, 
+            self.fleet_carrier_icy_rings_cb, self.fleet_carrier_pristine_label, 
+            self.fleet_carrier_pristine_cb, self.fleet_carrier_tritium_label, 
+            self.fleet_carrier_balance_label
+        ]
+        
+        # Basic controls should also always be visible (they're positioned in init_gui)
+        always_visible = fleet_carrier_widgets + basic_controls
+        
+        for widget in route_widgets + plotting_widgets + info_labels:
+            if widget not in always_visible:
                 widget.grid_remove()
         
         # Show widgets based on state
@@ -394,9 +413,11 @@ class SpanshRouter():
                 self.refuel_lbl.grid()
         
         # Always show basic controls when not plotting
-        if state != 'plotting':
-            for widget in basic_controls:
-                widget.grid()
+        # These widgets are already positioned in init_gui() with specific row/column values
+        # Calling grid() without parameters can cause Tkinter to reposition widgets
+        # Since these widgets should always be visible, we don't need to re-grid them
+        # They're only in basic_controls so they don't get grid_remove() called on them
+        # So we don't need to do anything here - they're already visible
 
     def update_gui(self):
         """Update the GUI based on current state"""
