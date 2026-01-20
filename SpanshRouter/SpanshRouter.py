@@ -89,22 +89,78 @@ class SpanshRouter():
         self.fleet_carrier_inara_btn = None
         self.fleet_carrier_system_label = None
         self.fleet_carrier_tritium_label = None
+        self.fleet_carrier_separator = None
         self.selected_carrier_callsign = None
         self.fleet_carrier_var = tk.StringVar()
 
     #   -- GUI part --
     def init_gui(self, parent):
         self.parent = parent
-        # Check if frame already exists - if so, destroy it to prevent duplicates
+        
+        # FIRST: Check if widgets already exist and are valid - if so, don't recreate them
+        widgets_exist = False
         if hasattr(self, 'frame') and self.frame:
             try:
-                self.frame.destroy()
+                if self.frame.winfo_exists():
+                    # Frame exists, check if fleet carrier widgets exist
+                    if (hasattr(self, 'fleet_carrier_status_label') and 
+                        self.fleet_carrier_status_label):
+                        try:
+                            if self.fleet_carrier_status_label.winfo_exists():
+                                # Widgets already exist, don't recreate
+                                widgets_exist = True
+                        except (tk.TclError, AttributeError):
+                            # Widget was destroyed, need to recreate
+                            widgets_exist = False
+            except (tk.TclError, AttributeError):
+                # Frame was destroyed, need to recreate
+                widgets_exist = False
+        
+        # If widgets already exist, skip widget creation
+        if widgets_exist:
+            return self.frame
+        
+        # Widgets don't exist or were destroyed - destroy frame and recreate everything
+        if hasattr(self, 'frame') and self.frame:
+            try:
+                # Check if frame still exists and is valid
+                try:
+                    self.frame.winfo_exists()
+                    # Frame exists, destroy all child widgets first
+                    for widget in self.frame.winfo_children():
+                        try:
+                            widget.destroy()
+                        except Exception:
+                            pass
+                    self.frame.destroy()
+                except tk.TclError:
+                    # Frame was already destroyed
+                    pass
             except Exception:
                 pass
+            finally:
+                self.frame = None
+        
+        # Reset fleet carrier widget references (they'll be recreated below)
+        self.fleet_carrier_status_label = None
+        self.fleet_carrier_combobox = None
+        self.fleet_carrier_details_btn = None
+        self.fleet_carrier_inara_btn = None
+        self.fleet_carrier_system_label = None
+        self.fleet_carrier_icy_rings_label = None
+        self.fleet_carrier_icy_rings_cb = None
+        self.fleet_carrier_pristine_label = None
+        self.fleet_carrier_pristine_cb = None
+        self.fleet_carrier_tritium_label = None
+        self.fleet_carrier_balance_label = None
+        self.fleet_carrier_separator = None
+        
+        # Create frame fresh
         self.frame = tk.Frame(parent, borderwidth=2)
         self.frame.grid(sticky=tk.NSEW, columnspan=2)
         
         # Fleet carrier status display (compact, at top)
+        # Create all widgets fresh
         self.fleet_carrier_status_label = tk.Label(self.frame, text="Fleet Carrier:")
         self.fleet_carrier_combobox = ttk.Combobox(
             self.frame, 
@@ -188,10 +244,13 @@ class SpanshRouter():
 
         row = 0
         # Fleet carrier status at the top
+        # Store grid positions to prevent accidental repositioning
         self.fleet_carrier_status_label.grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
         self.fleet_carrier_combobox.grid(row=row, column=1, padx=5, pady=2, sticky=tk.W)
         self.fleet_carrier_details_btn.grid(row=row, column=2, padx=2, pady=2, sticky=tk.W)
         self.fleet_carrier_inara_btn.grid(row=row, column=3, padx=2, pady=2, sticky=tk.W)
+        # Store grid info to prevent repositioning
+        self._fleet_carrier_row_start = row
         self.update_fleet_carrier_dropdown()
         row += 1
         # Fleet carrier system location
@@ -217,8 +276,9 @@ class SpanshRouter():
         self.update_fleet_carrier_balance_display()
         row += 1
         # Separator line
-        separator = tk.Frame(self.frame, height=1, bg="gray")
-        separator.grid(row=row, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=2)
+        self.fleet_carrier_separator = tk.Frame(self.frame, height=1, bg="gray")
+        self.fleet_carrier_separator.grid(row=row, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=2)
+        self._fleet_carrier_row_end = row  # Store end row for fleet carrier section
         row += 1
         # Route waypoint controls
         self.waypoint_prev_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
@@ -342,6 +402,10 @@ class SpanshRouter():
             self.fleet_carrier_pristine_cb, self.fleet_carrier_tritium_label, 
             self.fleet_carrier_balance_label
         ]
+        
+        # Also include the separator in the always-visible list
+        if hasattr(self, 'fleet_carrier_separator'):
+            fleet_carrier_widgets.append(self.fleet_carrier_separator)
         
         # Basic controls should also always be visible (they're positioned in init_gui)
         always_visible = fleet_carrier_widgets + basic_controls
