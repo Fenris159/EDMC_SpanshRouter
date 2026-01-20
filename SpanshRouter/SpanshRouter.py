@@ -788,8 +788,11 @@ class SpanshRouter():
             self.plot_route_btn.update_idletasks()
             self.cancel_plot.config(state=tk.NORMAL)
             self.cancel_plot.update_idletasks()
-            self.supercharge_cb.config(state=tk.NORMAL)
-            self.supercharge_cb.update_idletasks()
+            # supercharge_cb is a Frame containing Canvas and Label - re-bind events to enable interaction
+            if hasattr(self, 'supercharge_toggle_canvas'):
+                self.supercharge_toggle_canvas.bind("<Button-1>", self._toggle_supercharge)
+            if hasattr(self, 'supercharge_label'):
+                self.supercharge_label.bind("<Button-1>", self._toggle_supercharge)
         else:
             self.source_ac.config(state=tk.DISABLED)
             self.source_ac.update_idletasks()
@@ -803,8 +806,12 @@ class SpanshRouter():
             self.plot_route_btn.update_idletasks()
             self.cancel_plot.config(state=tk.DISABLED)
             self.cancel_plot.update_idletasks()
-            self.supercharge_cb.config(state=tk.DISABLED)
-            self.supercharge_cb.update_idletasks()
+            # supercharge_cb is a Frame containing Canvas and Label - disable interaction by unbinding events
+            if hasattr(self, 'supercharge_toggle_canvas'):
+                # Unbind click events to disable interaction during calculation
+                self.supercharge_toggle_canvas.unbind("<Button-1>")
+            if hasattr(self, 'supercharge_label'):
+                self.supercharge_label.unbind("<Button-1>")
 
     #   -- END GUI part --
 
