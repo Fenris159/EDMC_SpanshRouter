@@ -317,12 +317,11 @@ class SpanshRouter():
             # Bind click event to toggle
             self.supercharge_toggle_canvas.bind("<Button-1>", self._toggle_supercharge)
             
-            # Create label for the text
+            # Create label for the text - match font size of Plot Route button (default button font)
             self.supercharge_label = tk.Label(
                 supercharge_frame,
                 text="Supercharge",
                 foreground="orange",
-                font=("TkDefaultFont", 12),
                 bg=frame_bg,
                 cursor="hand2"
             )
@@ -371,9 +370,10 @@ class SpanshRouter():
             row += 1
             # Fleet carrier Tritium display (clickable to search Inara) with Balance to the right
             self.fleet_carrier_tritium_label.grid(row=row, column=0, padx=2, pady=2, sticky=tk.W)
-            self.fleet_carrier_tritium_label.bind("<Button-1>", lambda e: self.find_tritium_near_current_system())
-            self.fleet_carrier_tritium_label.bind("<Enter>", lambda e, lbl=self.fleet_carrier_tritium_label: lbl.config(fg="darkblue", underline=True))
-            self.fleet_carrier_tritium_label.bind("<Leave>", lambda e, lbl=self.fleet_carrier_tritium_label: lbl.config(fg="blue", underline=False))
+            # Bind click and hover events - handlers will check if data is available
+            self.fleet_carrier_tritium_label.bind("<Button-1>", lambda e: self._on_tritium_click())
+            self.fleet_carrier_tritium_label.bind("<Enter>", lambda e: self._on_tritium_enter())
+            self.fleet_carrier_tritium_label.bind("<Leave>", lambda e: self._on_tritium_leave())
             # Fleet carrier Balance display - to the right of Tritium
             self.fleet_carrier_balance_label.grid(row=row, column=1, padx=2, pady=2, sticky=tk.W)
             self.update_fleet_carrier_tritium_display()
@@ -416,12 +416,17 @@ class SpanshRouter():
             self.efficiency_slider.grid(row=row, padx=2, pady=5, columnspan=3, sticky=tk.EW)
             row += 1
             # Basic controls - always visible, side by side in separate columns, tighter spacing
+            # These will be shown/hidden by _update_widget_visibility
             self.csv_route_btn.grid(row=row, column=0, padx=(2, 1), pady=5, sticky=tk.W)
             self.view_route_btn.grid(row=row, column=1, padx=1, pady=5, sticky=tk.W)
             self.plot_gui_btn.grid(row=row, column=2, padx=1, pady=5, sticky=tk.W)
-            # Plotting controls - shown/hidden based on state
+            # Plotting controls - shown/hidden based on state (same row, same columns)
+            # When plotting is active, these replace the basic controls
             self.plot_route_btn.grid(row=row, column=0, padx=(2, 1), pady=5, sticky=tk.W)
             self.cancel_plot.grid(row=row, column=1, padx=1, pady=5, sticky=tk.W)
+            # Initially hide plotting controls (they'll be shown when plotting state is active)
+            self.plot_route_btn.grid_remove()
+            self.cancel_plot.grid_remove()
             row += 1
             self.clear_route_btn.grid(row=row, column=0, padx=(2, 1), pady=5, sticky=tk.W)
             row += 1
@@ -641,7 +646,7 @@ class SpanshRouter():
         ]
         
         basic_controls = [
-            self.plot_gui_btn, self.csv_route_btn, self.view_route_btn
+            self.csv_route_btn, self.view_route_btn, self.plot_gui_btn
         ]
         
         info_labels = [
@@ -663,21 +668,24 @@ class SpanshRouter():
         if hasattr(self, 'fleet_carrier_separator'):
             fleet_carrier_widgets.append(self.fleet_carrier_separator)
         
-        # Basic controls should also always be visible (they're positioned in init_gui)
-        always_visible = fleet_carrier_widgets + basic_controls
+        # Fleet carrier widgets are always visible, but basic controls can be hidden/shown
+        always_visible = fleet_carrier_widgets
         
-        for widget in route_widgets + plotting_widgets + info_labels:
+        # Hide all widgets first (except fleet carrier widgets which are always visible)
+        for widget in route_widgets + plotting_widgets + info_labels + basic_controls:
             if widget not in always_visible:
                 widget.grid_remove()
         
         # Show widgets based on state
         if state == 'plotting':
-            # Show plotting interface
-            # IMPORTANT: Only call grid() on widgets that were grid_remove()d
-            # Never call grid() on fleet carrier widgets - they're always visible
+            # Hide basic controls (Plot route, Import file, View Route)
+            for widget in basic_controls:
+                widget.grid_remove()
+            
+            # Show plotting interface (Calculate, Cancel, and plotting inputs)
             for widget in plotting_widgets:
-                if widget not in always_visible:
-                    widget.grid()
+                widget.grid()
+            
             # Prefill source if needed
             if not self.source_ac.var.get() or self.source_ac.var.get() == self.source_ac.placeholder:
                 current_system = monitor.state.get('SystemName')
@@ -685,13 +693,26 @@ class SpanshRouter():
                     self.source_ac.set_text(current_system, placeholder_style=False)
                 else:
                     self.source_ac.put_placeholder()
+        elif state == 'empty':
+            # Hide plotting widgets
+            for widget in plotting_widgets:
+                widget.grid_remove()
+            
+            # Show basic controls
+            for widget in basic_controls:
+                widget.grid()
         elif state == 'route' and len(self.route) > 0:
+            # Hide plotting widgets
+            for widget in plotting_widgets:
+                widget.grid_remove()
+            
+            # Show basic controls
+            for widget in basic_controls:
+                widget.grid()
+            
             # Show route navigation interface
-            # IMPORTANT: Only call grid() on widgets that were grid_remove()d
-            # Never call grid() on fleet carrier widgets - they're always visible
             for widget in route_widgets:
-                if widget not in always_visible:
-                    widget.grid()
+                widget.grid()
             
             # Update waypoint button text
             self.waypoint_btn["text"] = self.next_wp_label + '\n' + self.next_stop
@@ -738,19 +759,6 @@ class SpanshRouter():
             if self.galaxy and self.pleaserefuel:
                 self.refuel_lbl['text'] = self.refuellbl_txt
                 self.refuel_lbl.grid()
-        
-        # Always ensure basic controls are visible
-        # These widgets should always be visible regardless of state
-        # They're positioned in init_gui() and should never be grid_remove()d
-        # Explicitly ensure they're shown (in case they were accidentally hidden)
-        for widget in basic_controls:
-            if widget:
-                try:
-                    # Ensure widget is visible - grid() will restore it if it was grid_remove()d
-                    # Tkinter remembers the original grid position when grid_remove() is called
-                    widget.grid()
-                except Exception:
-                    pass
 
     def update_gui(self):
         """Update the GUI based on current state"""
@@ -2142,9 +2150,9 @@ class SpanshRouter():
             details_window = tk.Toplevel(self.parent)
             details_window.title("Fleet Carrier Details")
             
-            # Define headers and column widths first
-            headers = ["Select", "Callsign", "Name", "System", "Tritium", "Balance", "Cargo", "State", "Theme", "Icy Rings", "Pristine", "Docking Access", "Notorious Access", "Last Updated"]
-            column_widths = [8, 12, 20, 20, 15, 15, 20, 15, 15, 12, 12, 15, 18, 20]
+            # Define headers and column widths first - add EDSM button before System
+            headers = ["Select", "Callsign", "Name", "EDSM", "System", "Tritium", "Balance", "Cargo", "State", "Theme", "Icy Rings", "Pristine", "Docking Access", "Notorious Access", "Last Updated"]
+            column_widths = [8, 12, 20, 6, 20, 15, 15, 20, 15, 15, 12, 12, 15, 18, 20]
             
             # Calculate required width based on columns
             # More accurate estimate: column_widths * 8-10 pixels per character + padding + separators
@@ -2225,7 +2233,10 @@ class SpanshRouter():
                 header_lower = header.lower()
                 # Check if this is a checkbox column (Icy Rings, Pristine, Docking Access, Notorious Access, Refuel, Neutron Star, etc.)
                 is_checkbox_col = any(keyword in header_lower for keyword in ['icy rings', 'pristine', 'docking access', 'notorious access', 'refuel', 'neutron star', 'restock tritium', 'is terraformable'])
-                if header_lower in numeric_columns_fleet:
+                if header_lower == "edsm":  # EDSM button column - center align
+                    anchor = "c"
+                    sticky_val = tk.EW
+                elif header_lower in numeric_columns_fleet:
                     anchor = "e"  # Right-align for numeric columns
                     sticky = tk.E
                 elif is_checkbox_col:
@@ -2327,6 +2338,15 @@ class SpanshRouter():
                 if col_idx < len(headers) - 1:
                     separator2 = ttk.Separator(table_frame, orient=tk.VERTICAL)
                     separator2.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                col_idx += 1
+                
+                # EDSM button - before System column
+                edsm_btn_width = column_widths[col_idx] if col_idx < len(column_widths) else 6
+                edsm_btn = tk.Button(table_frame, text="EDSM", command=lambda s=system: self.open_edsm_system(s), width=edsm_btn_width, bg=row_bg)
+                edsm_btn.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                if col_idx < len(headers) - 1:
+                    separator_edsm = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator_edsm.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # System (clickable to Inara) - use exact same width as header
@@ -2495,6 +2515,24 @@ class SpanshRouter():
             webbrowser.open(url)
         except Exception:
             logger.warning(f'!! Error opening Inara system page for {system_name}: ' + traceback.format_exc(), exc_info=False)
+    
+    def open_edsm_system(self, system_name: str):
+        """
+        Open EDSM.net page for a system.
+        
+        Args:
+            system_name: System name (may contain spaces or special characters)
+        
+        Note: urllib.parse.quote() properly URL-encodes spaces (%20) and special characters
+        """
+        try:
+            # EDSM system URL format: https://www.edsm.net/en/system?systemName=SYSTEMNAME
+            # urllib.parse.quote() handles spaces, special chars, and unicode properly
+            encoded_name = urllib.parse.quote(system_name)
+            url = f"https://www.edsm.net/en/system?systemName={encoded_name}"
+            webbrowser.open(url)
+        except Exception:
+            logger.warning(f'!! Error opening EDSM system page for {system_name}: ' + traceback.format_exc(), exc_info=False)
     
     def check_fleet_carrier_restock_warning(self):
         """
@@ -2808,12 +2846,33 @@ class SpanshRouter():
                 else:
                     display_text = f"Tritium: {fuel}"
                 
-                self.fleet_carrier_tritium_label.config(text=display_text, foreground="blue")
+                self.fleet_carrier_tritium_label.config(text=display_text, foreground="blue", cursor="hand2")
             else:
-                self.fleet_carrier_tritium_label.config(text="Tritium: Unknown", foreground="gray")
+                self.fleet_carrier_tritium_label.config(text="Tritium: Unknown", foreground="gray", cursor="")
         except Exception:
             logger.warning('!! Error updating fleet carrier Tritium display: ' + traceback.format_exc(), exc_info=False)
-            self.fleet_carrier_tritium_label.config(text="Tritium: Error", foreground="red")
+            self.fleet_carrier_tritium_label.config(text="Tritium: Error", foreground="red", cursor="")
+    
+    def _on_tritium_click(self):
+        """Handle click on Tritium label - only if data is available"""
+        if self.fleet_carrier_tritium_label:
+            # Only allow click if foreground is blue (data available), not gray (unknown)
+            if self.fleet_carrier_tritium_label.cget('foreground') == 'blue':
+                self.find_tritium_near_current_system()
+    
+    def _on_tritium_enter(self):
+        """Handle mouse enter on Tritium label - only if data is available"""
+        if self.fleet_carrier_tritium_label:
+            # Only show hover effect if foreground is blue (data available), not gray (unknown)
+            if self.fleet_carrier_tritium_label.cget('foreground') == 'blue':
+                self.fleet_carrier_tritium_label.config(fg="darkblue", underline=True)
+    
+    def _on_tritium_leave(self):
+        """Handle mouse leave on Tritium label - only if data is available"""
+        if self.fleet_carrier_tritium_label:
+            # Only restore normal state if foreground was blue (data available), not gray (unknown)
+            if self.fleet_carrier_tritium_label.cget('foreground') in ('blue', 'darkblue'):
+                self.fleet_carrier_tritium_label.config(fg="blue", underline=False)
     
     def update_fleet_carrier_balance_display(self):
         """
@@ -3012,9 +3071,25 @@ class SpanshRouter():
             table_frame = tk.Frame(scrollable_frame, bg="white")
             table_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
             
-            # Add step number as first column
-            headers = ["#"] + display_columns
-            column_widths = [4] + [max(15, len(h)) for h in display_columns]
+            # Add step number as first column, and EDSM button before System Name
+            # Check if System Name is in display_columns and insert EDSM before it
+            display_columns_with_edsm = []
+            edsm_inserted = False
+            system_name_index = -1
+            for idx, col in enumerate(display_columns):
+                if col.lower() == self.system_header.lower() and not edsm_inserted:
+                    system_name_index = idx
+                    display_columns_with_edsm.append("EDSM")
+                    edsm_inserted = True
+                display_columns_with_edsm.append(col)
+            
+            # If System Name wasn't found, just add EDSM at the beginning (after step number)
+            if not edsm_inserted:
+                display_columns_with_edsm = ["EDSM"] + display_columns
+            
+            headers = ["#"] + display_columns_with_edsm
+            # Column widths: 4 for step number, then calculated widths (6 for EDSM, calculated for others)
+            column_widths = [4] + [6 if h == "EDSM" else max(15, len(h)) for h in display_columns_with_edsm]
             
             # Calculate required width based on columns (after column_widths is defined)
             # More accurate estimate: column_widths * 8-10 pixels per character + padding + separators
@@ -3048,15 +3123,19 @@ class SpanshRouter():
                 # Cap width at reasonable maximum (but use same logic as data cells)
                 width = min(width, 30) if i > 0 else width
                 # Right-align numeric columns, left-align text columns, center-align checkbox columns
+                header_lower = header.lower()
                 if i == 0:  # Step number - left align
                     anchor = "w"
                     sticky_val = tk.W
-                elif i > 0 and display_columns[i-1].lower() in numeric_columns:
-                    anchor = "e"  # Right-align for numeric columns
-                    sticky_val = tk.E
-                elif i > 0 and display_columns[i-1].lower() in checkbox_columns:
+                elif header_lower == "edsm":  # EDSM button column - center align
+                    anchor = "c"
+                    sticky_val = tk.EW
+                elif header_lower in checkbox_columns:
                     anchor = "c"  # Center-align for checkbox columns
                     sticky_val = tk.EW  # Expand to fill column width for centering
+                elif header_lower in numeric_columns:
+                    anchor = "e"  # Right-align for numeric columns
+                    sticky_val = tk.E
                 else:
                     anchor = "w"  # Left-align for text columns
                     sticky_val = tk.W
@@ -3076,8 +3155,6 @@ class SpanshRouter():
                 
                 col_idx = 0
                 
-                col_idx = 0
-                
                 # Step number - use exact same width calculation as header for perfect alignment
                 step_width = column_widths[0] if col_idx < len(column_widths) else 4
                 # Ensure width matches header exactly (header doesn't cap step number width)
@@ -3089,18 +3166,42 @@ class SpanshRouter():
                 col_idx += 1
                 
                 # Display each column - use column_widths to match header widths
+                # Note: We iterate through display_columns but need to account for EDSM column before System Name
                 for field_idx, field_name in enumerate(display_columns):
                     field_lower = field_name.lower()
                     value = route_entry.get(field_lower, '').strip() if isinstance(route_entry.get(field_lower, ''), str) else str(route_entry.get(field_lower, ''))
                     
-                    # Get width from column_widths array (offset by 1 because step number is first)
-                    # Use exact same width calculation as header for perfect alignment
-                    col_width = column_widths[col_idx] if col_idx < len(column_widths) else max(15, len(field_name))
-                    # Apply same width cap as headers
-                    col_width = min(col_width, 30) if col_idx > 0 else col_width
-                    
-                    # Special handling for System Name
+                    # Special handling: Add EDSM button before System Name
                     if field_lower == self.system_header.lower():
+                        # EDSM column comes right before System Name in headers
+                        # Add EDSM button first
+                        edsm_col_width = column_widths[col_idx] if col_idx < len(column_widths) else 6
+                        
+                        # Get the system name value for EDSM button
+                        system_name_for_edsm = None
+                        if self.roadtoriches:
+                            current_system = value
+                            system_name_for_edsm = current_system if current_system and current_system.lower() != prev_system_name else None
+                        else:
+                            system_name_for_edsm = value if value else None
+                        
+                        if system_name_for_edsm:
+                            edsm_btn = tk.Button(table_frame, text="EDSM", command=lambda s=system_name_for_edsm: self.open_edsm_system(s), width=edsm_col_width, bg=row_bg)
+                            edsm_btn.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                        else:
+                            # Empty cell if no system name
+                            tk.Label(table_frame, text="", width=edsm_col_width, bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                        if col_idx < len(headers) - 1:
+                            separator_edsm = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                            separator_edsm.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                        col_idx += 1
+                        
+                        # Now add System Name at the next column position
+                        # Get width for System Name column
+                        col_width = column_widths[col_idx] if col_idx < len(column_widths) else max(15, len(field_name))
+                        col_width = min(col_width, 30) if col_idx > 0 else col_width
+                        
+                        # Handle System Name display
                         # For Road to Riches, check if system name repeats
                         if self.roadtoriches:
                             current_system = value
@@ -3129,9 +3230,22 @@ class SpanshRouter():
                                 system_label.bind("<Leave>", lambda e, lbl=system_label: lbl.config(fg="blue", underline=False))
                             else:
                                 tk.Label(table_frame, text="", width=col_width, anchor="w", bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                        
+                        # Add separator after System Name and move to next column
+                        if col_idx < len(headers) - 1:
+                            separator_system = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                            separator_system.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                        col_idx += 1
+                        continue  # Skip the rest of the loop for System Name since we've handled it
+                    
+                    # Get width from column_widths array for non-System Name columns
+                    # Use exact same width calculation as header for perfect alignment
+                    col_width = column_widths[col_idx] if col_idx < len(column_widths) else max(15, len(field_name))
+                    # Apply same width cap as headers
+                    col_width = min(col_width, 30) if col_idx > 0 else col_width
                     
                     # Checkbox columns (yes/no fields) - checkbox only, no text, center-aligned
-                    elif field_lower in checkbox_columns:
+                    if field_lower in checkbox_columns:
                         checkbox_value = value.lower()
                         checkbox_var = tk.BooleanVar(value=(checkbox_value == 'yes'))
                         # Checkbox with no text, center-aligned in column
