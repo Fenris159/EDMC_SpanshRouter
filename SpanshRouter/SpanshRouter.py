@@ -2221,11 +2221,16 @@ class SpanshRouter():
             # Header row (row 0) - styled with grey background and bold text
             header_row = 0
             for i, header in enumerate(headers):
-                # Right-align numeric columns, left-align others
+                # Right-align numeric columns, left-align text columns, center-align checkbox columns
                 header_lower = header.lower()
+                # Check if this is a checkbox column (Icy Rings, Pristine, Docking Access, Notorious Access, Refuel, Neutron Star, etc.)
+                is_checkbox_col = any(keyword in header_lower for keyword in ['icy rings', 'pristine', 'docking access', 'notorious access', 'refuel', 'neutron star', 'restock tritium', 'is terraformable'])
                 if header_lower in numeric_columns_fleet:
                     anchor = "e"  # Right-align for numeric columns
                     sticky = tk.E
+                elif is_checkbox_col:
+                    anchor = "c"  # Center-align for checkbox columns
+                    sticky = tk.EW  # Expand to fill column width for centering
                 else:
                     anchor = "w"  # Left-align for text columns
                     sticky = tk.W
@@ -2376,45 +2381,45 @@ class SpanshRouter():
                     separator8.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
-                # Icy Rings (read-only checkbox) - use exact same width as header
+                # Icy Rings (read-only checkbox) - checkbox only, center-aligned
                 icy_rings_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
                 icy_rings_value = icy_rings.lower() == 'yes' if icy_rings else False
                 icy_rings_var = tk.BooleanVar(value=icy_rings_value)
-                icy_rings_cb = tk.Checkbutton(table_frame, variable=icy_rings_var, state=tk.DISABLED, text="", width=icy_rings_width, anchor="w", bg=row_bg)
-                icy_rings_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                icy_rings_cb = tk.Checkbutton(table_frame, variable=icy_rings_var, state=tk.DISABLED, text="", width=icy_rings_width, bg=row_bg)
+                icy_rings_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.EW)
                 if col_idx < len(headers) - 1:
                     separator9 = ttk.Separator(table_frame, orient=tk.VERTICAL)
                     separator9.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
-                # Pristine (read-only checkbox) - use exact same width as header
+                # Pristine (read-only checkbox) - checkbox only, center-aligned
                 pristine_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
                 pristine_value = pristine.lower() == 'yes' if pristine else False
                 pristine_var = tk.BooleanVar(value=pristine_value)
-                pristine_cb = tk.Checkbutton(table_frame, variable=pristine_var, state=tk.DISABLED, text="", width=pristine_width, anchor="w", bg=row_bg)
-                pristine_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                pristine_cb = tk.Checkbutton(table_frame, variable=pristine_var, state=tk.DISABLED, text="", width=pristine_width, bg=row_bg)
+                pristine_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.EW)
                 if col_idx < len(headers) - 1:
                     separator10 = ttk.Separator(table_frame, orient=tk.VERTICAL)
                     separator10.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
-                # Docking Access (read-only checkbox) - use exact same width as header
+                # Docking Access (read-only checkbox) - checkbox only, center-aligned
                 docking_access_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
                 docking_access_value = docking_access.lower() in ['yes', 'all', 'friends', 'squadron'] if docking_access else False
                 docking_access_var = tk.BooleanVar(value=docking_access_value)
-                docking_access_cb = tk.Checkbutton(table_frame, variable=docking_access_var, state=tk.DISABLED, text="", width=docking_access_width, anchor="w", bg=row_bg)
-                docking_access_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                docking_access_cb = tk.Checkbutton(table_frame, variable=docking_access_var, state=tk.DISABLED, text="", width=docking_access_width, bg=row_bg)
+                docking_access_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.EW)
                 if col_idx < len(headers) - 1:
                     separator11 = ttk.Separator(table_frame, orient=tk.VERTICAL)
                     separator11.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
-                # Notorious Access (read-only checkbox) - use exact same width as header
+                # Notorious Access (read-only checkbox) - checkbox only, center-aligned
                 notorious_access_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
                 notorious_access_value = notorious_access.lower() in ['true', 'yes', '1'] if isinstance(notorious_access, str) else bool(notorious_access) if notorious_access else False
                 notorious_access_var = tk.BooleanVar(value=notorious_access_value)
-                notorious_access_cb = tk.Checkbutton(table_frame, variable=notorious_access_var, state=tk.DISABLED, text="", width=notorious_access_width, anchor="w", bg=row_bg)
-                notorious_access_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                notorious_access_cb = tk.Checkbutton(table_frame, variable=notorious_access_var, state=tk.DISABLED, text="", width=notorious_access_width, bg=row_bg)
+                notorious_access_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.EW)
                 if col_idx < len(headers) - 1:
                     separator12 = ttk.Separator(table_frame, orient=tk.VERTICAL)
                     separator12.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
@@ -2482,11 +2487,11 @@ class SpanshRouter():
         Note: urllib.parse.quote() properly URL-encodes spaces (%20) and special characters
         """
         try:
-            # Inara system URL format: https://inara.cz/elite/system/?search=SYSTEMNAME
+            # Inara system URL format: https://inara.cz/elite/starsystem/?search=SYSTEMNAME
             # urllib.parse.quote() handles spaces, special chars, and unicode properly
             # e.g., "Sol" stays "Sol", "Alpha Centauri" becomes "Alpha%20Centauri"
             encoded_name = urllib.parse.quote(system_name)
-            url = f"https://inara.cz/elite/system/?search={encoded_name}"
+            url = f"https://inara.cz/elite/starsystem/?search={encoded_name}"
             webbrowser.open(url)
         except Exception:
             logger.warning(f'!! Error opening Inara system page for {system_name}: ' + traceback.format_exc(), exc_info=False)
@@ -3042,13 +3047,16 @@ class SpanshRouter():
                 width = column_widths[i] if i < len(column_widths) else 20
                 # Cap width at reasonable maximum (but use same logic as data cells)
                 width = min(width, 30) if i > 0 else width
-                # Right-align numeric columns, left-align others
+                # Right-align numeric columns, left-align text columns, center-align checkbox columns
                 if i == 0:  # Step number - left align
                     anchor = "w"
                     sticky_val = tk.W
                 elif i > 0 and display_columns[i-1].lower() in numeric_columns:
                     anchor = "e"  # Right-align for numeric columns
                     sticky_val = tk.E
+                elif i > 0 and display_columns[i-1].lower() in checkbox_columns:
+                    anchor = "c"  # Center-align for checkbox columns
+                    sticky_val = tk.EW  # Expand to fill column width for centering
                 else:
                     anchor = "w"  # Left-align for text columns
                     sticky_val = tk.W
@@ -3122,13 +3130,13 @@ class SpanshRouter():
                             else:
                                 tk.Label(table_frame, text="", width=col_width, anchor="w", bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                     
-                    # Checkbox columns (yes/no fields)
+                    # Checkbox columns (yes/no fields) - checkbox only, no text, center-aligned
                     elif field_lower in checkbox_columns:
                         checkbox_value = value.lower()
                         checkbox_var = tk.BooleanVar(value=(checkbox_value == 'yes'))
-                        checkbox_text = field_name  # Use original field name for display
-                        checkbox_cb = tk.Checkbutton(table_frame, variable=checkbox_var, state=tk.DISABLED, text=checkbox_text, width=col_width, anchor="w", bg=row_bg)
-                        checkbox_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                        # Checkbox with no text, center-aligned in column
+                        checkbox_cb = tk.Checkbutton(table_frame, variable=checkbox_var, state=tk.DISABLED, text="", width=col_width, bg=row_bg)
+                        checkbox_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.EW)
                     
                     # Regular text columns - right-align numeric columns, left-align others
                     else:
