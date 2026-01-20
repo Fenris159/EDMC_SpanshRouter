@@ -32,32 +32,38 @@ logger = logging.getLogger(f'{appname}.{plugin_name}')
 
 class ThemeSafeCanvas(tk.Canvas):
     """
-    A Canvas widget that gracefully handles foreground option from EDMC's theme system.
-    Canvas widgets don't support the -foreground option, so we silently ignore it
-    to prevent TclError when EDMC's theme system tries to apply it.
+    A Canvas widget that gracefully handles unsupported options from EDMC's theme system.
+    Canvas widgets don't support text-related options like -foreground and -font,
+    so we silently ignore them to prevent TclError when EDMC's theme system tries to apply them.
     """
+    # Options that Canvas widgets don't support but EDMC's theme system may try to apply
+    _unsupported_options = {
+        'foreground', '-foreground', 'fg', '-fg',
+        'font', '-font'
+    }
+    
     def configure(self, cnf=None, **kw):
-        """Override configure to silently ignore foreground option."""
+        """Override configure to silently ignore unsupported options."""
         if cnf is not None:
             # Handle dict-style configuration
             if isinstance(cnf, dict):
-                cnf = {k: v for k, v in cnf.items() if k not in ('foreground', '-foreground', 'fg', '-fg')}
+                cnf = {k: v for k, v in cnf.items() if k not in self._unsupported_options}
             elif isinstance(cnf, str):
                 # Handle single option query like 'foreground' or '-foreground'
-                if cnf in ('foreground', '-foreground', 'fg', '-fg'):
+                if cnf in self._unsupported_options:
                     # Return empty string for unsupported option (matching tkinter behavior)
                     return ''
-        # Remove foreground from keyword arguments
-        kw = {k: v for k, v in kw.items() if k not in ('foreground', '-foreground', 'fg', '-fg')}
+        # Remove unsupported options from keyword arguments
+        kw = {k: v for k, v in kw.items() if k not in self._unsupported_options}
         # Call parent configure with filtered options (only if there are options to configure)
         if cnf is None and not kw:
             return super().configure()
         return super().configure(cnf, **kw)
     
     def __setitem__(self, key, value):
-        """Override __setitem__ to silently ignore foreground option."""
-        if key in ('foreground', '-foreground', 'fg', '-fg'):
-            # Silently ignore foreground option
+        """Override __setitem__ to silently ignore unsupported options."""
+        if key in self._unsupported_options:
+            # Silently ignore unsupported options
             return
         return super().__setitem__(key, value)
     
@@ -3851,8 +3857,8 @@ class SpanshRouter():
                         if display_value is None or str(display_value).strip().lower() == 'none':
                             display_value = ""
                         
-                        # Round distance columns UP to nearest hundredth if they're numeric
-                        if is_numeric and field_lower in ["distance to arrival", "distance remaining", "distance"]:
+                        # Round distance and fuel columns UP to nearest hundredth if they're numeric
+                        if is_numeric and field_lower in ["distance to arrival", "distance remaining", "distance", "fuel used", "fuel left"]:
                             if display_value:  # Only process if not empty
                                 try:
                                     val_float = float(display_value)
