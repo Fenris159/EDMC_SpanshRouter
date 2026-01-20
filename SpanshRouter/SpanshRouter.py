@@ -2206,9 +2206,9 @@ class SpanshRouter():
             
             canvas.bind('<Configure>', on_canvas_configure)
             
-            # Header
-            header_frame = tk.Frame(scrollable_frame, bg="lightgray", relief=tk.RAISED, borderwidth=1)
-            header_frame.pack(fill=tk.X, padx=5, pady=5)
+            # Create a single table frame that will contain both header and data rows in one grid
+            table_frame = tk.Frame(scrollable_frame, bg="white")
+            table_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
             
             # Determine which columns should be right-aligned (numeric columns)
             numeric_columns_fleet = set()
@@ -2218,6 +2218,8 @@ class SpanshRouter():
                 if any(keyword in header_lower for keyword in ['tritium', 'balance']) and 'cargo' not in header_lower:
                     numeric_columns_fleet.add(header_lower)
             
+            # Header row (row 0) - styled with grey background and bold text
+            header_row = 0
             for i, header in enumerate(headers):
                 # Right-align numeric columns, left-align others
                 header_lower = header.lower()
@@ -2229,17 +2231,18 @@ class SpanshRouter():
                     sticky = tk.W
                 # Use exact same width as data cells for perfect alignment
                 header_width = column_widths[i] if i < len(column_widths) else 20
-                label = tk.Label(header_frame, text=header, font=("Arial", 9, "bold"), bg="lightgray", width=header_width, anchor=anchor)
-                label.grid(row=0, column=i*2, padx=2, pady=5, sticky=sticky)
+                label = tk.Label(table_frame, text=header, font=("Arial", 9, "bold"), bg="lightgray", width=header_width, anchor=anchor)
+                label.grid(row=header_row, column=i*2, padx=2, pady=5, sticky=sticky)
                 # Add vertical separator after each column (except the last)
                 if i < len(headers) - 1:
-                    separator = ttk.Separator(header_frame, orient=tk.VERTICAL)
-                    separator.grid(row=0, column=i*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator.grid(row=header_row, column=i*2+1, padx=0, pady=2, sticky=tk.NS)
             
-            # Carrier rows
+            # Carrier data rows (rows 1+) - use same grid as header for perfect alignment
             for idx, carrier in enumerate(sorted(carriers, key=lambda x: x.get('last_updated', ''), reverse=True)):
-                row_frame = tk.Frame(scrollable_frame, relief=tk.RIDGE, borderwidth=1)
-                row_frame.pack(fill=tk.X, padx=5, pady=2)
+                data_row = idx + 1  # Start from row 1 (row 0 is header)
+                # Alternate row background color
+                row_bg = "white" if idx % 2 == 0 else "#f0f0f0"
                 
                 callsign = carrier.get('callsign', 'Unknown')
                 name = carrier.get('name', '') or 'Unnamed'
@@ -2279,17 +2282,18 @@ class SpanshRouter():
                 
                 # Select button - updates dropdown to select this carrier
                 select_btn = tk.Button(
-                    row_frame,
+                    table_frame,
                     text="Select",
                     command=lambda c=callsign: self.select_carrier_from_details(c, details_window),
                     width=column_widths[col_idx],
-                    relief=tk.RAISED
+                    relief=tk.RAISED,
+                    bg=row_bg
                 )
-                select_btn.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                select_btn.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 # Add separator after Select column
                 if col_idx < len(headers) - 1:
-                    separator0 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator0.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator0 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator0.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Highlight if this is the currently selected carrier
@@ -2298,127 +2302,127 @@ class SpanshRouter():
                 
                 # Callsign (clickable to Inara) - use exact same width as header
                 callsign_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                callsign_label = tk.Label(row_frame, text=callsign, fg="blue", cursor="hand2", width=callsign_width, anchor="w")
-                callsign_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                callsign_label = tk.Label(table_frame, text=callsign, fg="blue", cursor="hand2", width=callsign_width, anchor="w", bg=row_bg)
+                callsign_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 callsign_label.bind("<Button-1>", lambda e, c=callsign: self.open_inara_carrier(c))
                 callsign_label.bind("<Enter>", lambda e, lbl=callsign_label: lbl.config(fg="darkblue", underline=True))
                 callsign_label.bind("<Leave>", lambda e, lbl=callsign_label: lbl.config(fg="blue", underline=False))
                 if col_idx < len(headers) - 1:
-                    separator1 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator1.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator1 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator1.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Name (clickable to Inara) - use exact same width as header
                 name_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                name_label = tk.Label(row_frame, text=name, fg="blue", cursor="hand2", width=name_width, anchor="w")
-                name_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                name_label = tk.Label(table_frame, text=name, fg="blue", cursor="hand2", width=name_width, anchor="w", bg=row_bg)
+                name_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 name_label.bind("<Button-1>", lambda e, c=callsign: self.open_inara_carrier(c))
                 name_label.bind("<Enter>", lambda e, lbl=name_label: lbl.config(fg="darkblue", underline=True))
                 name_label.bind("<Leave>", lambda e, lbl=name_label: lbl.config(fg="blue", underline=False))
                 if col_idx < len(headers) - 1:
-                    separator2 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator2.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator2 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator2.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # System (clickable to Inara) - use exact same width as header
                 system_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                system_label = tk.Label(row_frame, text=system, fg="blue", cursor="hand2", width=system_width, anchor="w")
-                system_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                system_label = tk.Label(table_frame, text=system, fg="blue", cursor="hand2", width=system_width, anchor="w", bg=row_bg)
+                system_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 system_label.bind("<Button-1>", lambda e, s=system: self.open_inara_system(s))
                 system_label.bind("<Enter>", lambda e, lbl=system_label: lbl.config(fg="darkblue", underline=True))
                 system_label.bind("<Leave>", lambda e, lbl=system_label: lbl.config(fg="blue", underline=False))
                 if col_idx < len(headers) - 1:
-                    separator3 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator3.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator3 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator3.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Tritium (fuel / cargo) - right-align numeric, use exact same width as header
                 tritium_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                tk.Label(row_frame, text=tritium_text, width=tritium_width, anchor="e").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.E)
+                tk.Label(table_frame, text=tritium_text, width=tritium_width, anchor="e", bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.E)
                 if col_idx < len(headers) - 1:
-                    separator4 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator4.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator4 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator4.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Balance - right-align numeric, use exact same width as header
                 balance_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                tk.Label(row_frame, text=balance_formatted, width=balance_width, anchor="e").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.E)
+                tk.Label(table_frame, text=balance_formatted, width=balance_width, anchor="e", bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.E)
                 if col_idx < len(headers) - 1:
-                    separator5 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator5.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator5 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator5.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Cargo - left-align text, use exact same width as header
                 cargo_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                tk.Label(row_frame, text=cargo_text, width=cargo_width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                tk.Label(table_frame, text=cargo_text, width=cargo_width, anchor="w", bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 if col_idx < len(headers) - 1:
-                    separator6 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator6.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator6 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator6.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # State - use exact same width as header
                 state_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                tk.Label(row_frame, text=state, width=state_width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                tk.Label(table_frame, text=state, width=state_width, anchor="w", bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 if col_idx < len(headers) - 1:
-                    separator7 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator7.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator7 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator7.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Theme - use exact same width as header
                 theme_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                tk.Label(row_frame, text=theme, width=theme_width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                tk.Label(table_frame, text=theme, width=theme_width, anchor="w", bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 if col_idx < len(headers) - 1:
-                    separator8 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator8.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator8 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator8.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Icy Rings (read-only checkbox) - use exact same width as header
                 icy_rings_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
                 icy_rings_value = icy_rings.lower() == 'yes' if icy_rings else False
                 icy_rings_var = tk.BooleanVar(value=icy_rings_value)
-                icy_rings_cb = tk.Checkbutton(row_frame, variable=icy_rings_var, state=tk.DISABLED, text="", width=icy_rings_width, anchor="w")
-                icy_rings_cb.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                icy_rings_cb = tk.Checkbutton(table_frame, variable=icy_rings_var, state=tk.DISABLED, text="", width=icy_rings_width, anchor="w", bg=row_bg)
+                icy_rings_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 if col_idx < len(headers) - 1:
-                    separator9 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator9.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator9 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator9.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Pristine (read-only checkbox) - use exact same width as header
                 pristine_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
                 pristine_value = pristine.lower() == 'yes' if pristine else False
                 pristine_var = tk.BooleanVar(value=pristine_value)
-                pristine_cb = tk.Checkbutton(row_frame, variable=pristine_var, state=tk.DISABLED, text="", width=pristine_width, anchor="w")
-                pristine_cb.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                pristine_cb = tk.Checkbutton(table_frame, variable=pristine_var, state=tk.DISABLED, text="", width=pristine_width, anchor="w", bg=row_bg)
+                pristine_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 if col_idx < len(headers) - 1:
-                    separator10 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator10.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator10 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator10.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Docking Access (read-only checkbox) - use exact same width as header
                 docking_access_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
                 docking_access_value = docking_access.lower() in ['yes', 'all', 'friends', 'squadron'] if docking_access else False
                 docking_access_var = tk.BooleanVar(value=docking_access_value)
-                docking_access_cb = tk.Checkbutton(row_frame, variable=docking_access_var, state=tk.DISABLED, text="", width=docking_access_width, anchor="w")
-                docking_access_cb.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                docking_access_cb = tk.Checkbutton(table_frame, variable=docking_access_var, state=tk.DISABLED, text="", width=docking_access_width, anchor="w", bg=row_bg)
+                docking_access_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 if col_idx < len(headers) - 1:
-                    separator11 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator11.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator11 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator11.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Notorious Access (read-only checkbox) - use exact same width as header
                 notorious_access_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
                 notorious_access_value = notorious_access.lower() in ['true', 'yes', '1'] if isinstance(notorious_access, str) else bool(notorious_access) if notorious_access else False
                 notorious_access_var = tk.BooleanVar(value=notorious_access_value)
-                notorious_access_cb = tk.Checkbutton(row_frame, variable=notorious_access_var, state=tk.DISABLED, text="", width=notorious_access_width, anchor="w")
-                notorious_access_cb.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                notorious_access_cb = tk.Checkbutton(table_frame, variable=notorious_access_var, state=tk.DISABLED, text="", width=notorious_access_width, anchor="w", bg=row_bg)
+                notorious_access_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 if col_idx < len(headers) - 1:
-                    separator12 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator12.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator12 = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator12.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Last Updated - use exact same width as header
                 last_updated_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                tk.Label(row_frame, text=last_updated, width=last_updated_width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                tk.Label(table_frame, text=last_updated, width=last_updated_width, anchor="w", bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
             
             # Finalize window setup after all widgets are created
             canvas.update_idletasks()
@@ -2999,9 +3003,9 @@ class SpanshRouter():
             
             canvas.bind('<Configure>', on_canvas_configure)
             
-            # Header
-            header_frame = tk.Frame(scrollable_frame, bg="lightgray", relief=tk.RAISED, borderwidth=1)
-            header_frame.pack(fill=tk.X, padx=5, pady=5)
+            # Create a single table frame that will contain both header and data rows in one grid
+            table_frame = tk.Frame(scrollable_frame, bg="white")
+            table_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
             
             # Add step number as first column
             headers = ["#"] + display_columns
@@ -3032,6 +3036,8 @@ class SpanshRouter():
                     if any(keyword in field_lower for keyword in ['distance', 'fuel used', 'fuel left', 'estimated scan value', 'estimated mapping value', 'jumps']):
                         numeric_columns.add(field_lower)
             
+            # Header row (row 0) - styled with grey background and bold text
+            header_row = 0
             for i, header in enumerate(headers):
                 width = column_widths[i] if i < len(column_widths) else 20
                 # Cap width at reasonable maximum (but use same logic as data cells)
@@ -3046,29 +3052,32 @@ class SpanshRouter():
                 else:
                     anchor = "w"  # Left-align for text columns
                     sticky_val = tk.W
-                # Use exact same width, anchor, sticky, and padding as data cells for perfect alignment
-                label = tk.Label(header_frame, text=header, font=("Arial", 9, "bold"), bg="lightgray", width=width, anchor=anchor)
-                label.grid(row=0, column=i*2, padx=2, pady=5, sticky=sticky_val)
+                # Header label with grey background and bold text
+                label = tk.Label(table_frame, text=header, font=("Arial", 9, "bold"), bg="lightgray", width=width, anchor=anchor)
+                label.grid(row=header_row, column=i*2, padx=2, pady=5, sticky=sticky_val)
                 # Add vertical separator after each column (except the last)
                 if i < len(headers) - 1:
-                    separator = ttk.Separator(header_frame, orient=tk.VERTICAL)
-                    separator.grid(row=0, column=i*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator.grid(row=header_row, column=i*2+1, padx=0, pady=2, sticky=tk.NS)
             
-            # Route rows
+            # Route data rows (rows 1+) - use same grid as header for perfect alignment
             for idx, route_entry in enumerate(route_data):
-                row_frame = tk.Frame(scrollable_frame, relief=tk.RIDGE, borderwidth=1)
-                row_frame.pack(fill=tk.X, padx=5, pady=2)
+                data_row = idx + 1  # Start from row 1 (row 0 is header)
+                # Alternate row background color
+                row_bg = "white" if idx % 2 == 0 else "#f0f0f0"
+                
+                col_idx = 0
                 
                 col_idx = 0
                 
                 # Step number - use exact same width calculation as header for perfect alignment
                 step_width = column_widths[0] if col_idx < len(column_widths) else 4
                 # Ensure width matches header exactly (header doesn't cap step number width)
-                tk.Label(row_frame, text=str(idx + 1), width=step_width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                tk.Label(table_frame, text=str(idx + 1), width=step_width, anchor="w", bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 # Add separator after step number
                 if col_idx < len(headers) - 1:
-                    separator_step = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                    separator_step.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                    separator_step = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                    separator_step.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Display each column - use column_widths to match header widths
@@ -3089,37 +3098,37 @@ class SpanshRouter():
                             current_system = value
                             if current_system and current_system.lower() == prev_system_name:
                                 # System name repeats, show empty
-                                system_label = tk.Label(row_frame, text="", width=col_width, anchor="w")
-                                system_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                                system_label = tk.Label(table_frame, text="", width=col_width, anchor="w", bg=row_bg)
+                                system_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                             else:
                                 # New system name, display it
                                 if current_system:
-                                    system_label = tk.Label(row_frame, text=current_system, fg="blue", cursor="hand2", width=col_width, anchor="w")
-                                    system_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                                    system_label = tk.Label(table_frame, text=current_system, fg="blue", cursor="hand2", width=col_width, anchor="w", bg=row_bg)
+                                    system_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                                     system_label.bind("<Button-1>", lambda e, s=current_system: self.open_inara_system(s))
                                     system_label.bind("<Enter>", lambda e, lbl=system_label: lbl.config(fg="darkblue", underline=True))
                                     system_label.bind("<Leave>", lambda e, lbl=system_label: lbl.config(fg="blue", underline=False))
                                 else:
-                                    tk.Label(row_frame, text="", width=col_width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                                    tk.Label(table_frame, text="", width=col_width, anchor="w", bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                             prev_system_name = current_system.lower() if current_system else None
                         else:
                             # Normal system name display (clickable to Inara)
                             if value:
-                                system_label = tk.Label(row_frame, text=value, fg="blue", cursor="hand2", width=col_width, anchor="w")
-                                system_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                                system_label = tk.Label(table_frame, text=value, fg="blue", cursor="hand2", width=col_width, anchor="w", bg=row_bg)
+                                system_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                                 system_label.bind("<Button-1>", lambda e, s=value: self.open_inara_system(s))
                                 system_label.bind("<Enter>", lambda e, lbl=system_label: lbl.config(fg="darkblue", underline=True))
                                 system_label.bind("<Leave>", lambda e, lbl=system_label: lbl.config(fg="blue", underline=False))
                             else:
-                                tk.Label(row_frame, text="", width=col_width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                                tk.Label(table_frame, text="", width=col_width, anchor="w", bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                     
                     # Checkbox columns (yes/no fields)
                     elif field_lower in checkbox_columns:
                         checkbox_value = value.lower()
                         checkbox_var = tk.BooleanVar(value=(checkbox_value == 'yes'))
                         checkbox_text = field_name  # Use original field name for display
-                        checkbox_cb = tk.Checkbutton(row_frame, variable=checkbox_var, state=tk.DISABLED, text=checkbox_text, width=col_width, anchor="w")
-                        checkbox_cb.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                        checkbox_cb = tk.Checkbutton(table_frame, variable=checkbox_var, state=tk.DISABLED, text=checkbox_text, width=col_width, anchor="w", bg=row_bg)
+                        checkbox_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                     
                     # Regular text columns - right-align numeric columns, left-align others
                     else:
@@ -3128,12 +3137,12 @@ class SpanshRouter():
                         anchor = "e" if is_numeric else "w"
                         sticky = tk.E if is_numeric else tk.W
                         # Use col_width which now matches header width calculation exactly
-                        tk.Label(row_frame, text=value if value else "", width=col_width, anchor=anchor).grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=sticky)
+                        tk.Label(table_frame, text=value if value else "", width=col_width, anchor=anchor, bg=row_bg).grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=sticky)
                     
                     # Add separator after each column (except the last)
                     if col_idx < len(headers) - 1:
-                        separator = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                        separator.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                        separator = ttk.Separator(table_frame, orient=tk.VERTICAL)
+                        separator.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                     
                     col_idx += 1
             
