@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## 3.4.1
+
+### Bug Fixes
+
+- **Fuel Display Rounding**: Fixed "Fuel Used" and "Fuel Left" columns not being rounded to the nearest hundredth in the "View Route" window
+  - Now properly rounds up to 2 decimal places, consistent with distance values
+  - Applies to all CSV route types that include fuel columns
+
+- **Fleet Carrier Display Errors**: Fixed main UI showing "Error" for System and Balance when data was unavailable
+  - Now correctly displays "Unknown" (grayed out) instead of "Error" (red)
+  - Improved error handling and null value checking
+  - Matches behavior of "View All Carriers" window for consistency
+
+- **Inara Fleet Carrier URL**: Fixed incorrect Inara.cz URL format for fleet carrier lookups
+  - Changed from `https://inara.cz/elite/fleetcarrier/?search=` to `https://inara.cz/elite/station/?search=`
+  - Fleet carriers are correctly accessed via the station search endpoint
+  - Affects both the "Inara" button and carrier name/callsign links in "View All" window
+
+### UI Improvements
+
+- **Fleet Carrier Dropdown Styling**: Enhanced dropdown appearance to match EDMC dark theme
+  - Background color matches EDMC's dark background (transparent-like)
+  - Text color changed to orange to match the rest of the program
+  - Improved visual consistency with plugin theme
+
 ## 3.4.0
 
 ### Route View Enhancements

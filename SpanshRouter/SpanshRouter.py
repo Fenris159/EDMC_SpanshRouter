@@ -241,11 +241,35 @@ class SpanshRouter():
             # Fleet carrier status display (compact, at top)
             # Create all widgets fresh
             self.fleet_carrier_status_label = tk.Label(self.frame, text="Fleet Carrier:")
+            
+            # Get frame background color to match EDMC theme
+            frame_bg = self.frame.cget('bg')
+            
+            # Create and configure style for the combobox
+            combobox_style = ttk.Style()
+            # Configure the Combobox style to match EDMC dark theme with orange text
+            combobox_style.configure(
+                'FleetCarrier.TCombobox',
+                fieldbackground=frame_bg,  # Match frame background (transparent-like)
+                background=frame_bg,
+                foreground='orange',  # Orange text to match rest of program
+                borderwidth=1,
+                relief='solid'
+            )
+            # Configure the dropdown arrow button
+            combobox_style.map(
+                'FleetCarrier.TCombobox',
+                fieldbackground=[('readonly', frame_bg)],
+                background=[('readonly', frame_bg)],
+                foreground=[('readonly', 'orange')]
+            )
+            
             self.fleet_carrier_combobox = ttk.Combobox(
                 self.frame, 
                 textvariable=self.fleet_carrier_var,
                 state="readonly",
-                width=25
+                width=25,
+                style='FleetCarrier.TCombobox'
             )
             self.fleet_carrier_combobox.bind("<<ComboboxSelected>>", self.on_carrier_selected)
             self.fleet_carrier_details_btn = tk.Button(
@@ -2923,11 +2947,11 @@ class SpanshRouter():
         """
         try:
             # Inara fleet carrier search URL format
-            # We'll use the search function since direct carrier URLs may vary
+            # Fleet carriers are accessed via the station search endpoint
             # urllib.parse.quote() handles spaces, special chars, and unicode properly
             # e.g., "My Carrier" becomes "My%20Carrier"
             encoded_callsign = urllib.parse.quote(callsign)
-            url = f"https://inara.cz/elite/fleetcarrier/?search={encoded_callsign}"
+            url = f"https://inara.cz/elite/station/?search={encoded_callsign}"
             webbrowser.open(url)
         except Exception:
             logger.warning(f'!! Error opening Inara carrier page for {callsign}: ' + traceback.format_exc(), exc_info=False)
@@ -3066,24 +3090,41 @@ class SpanshRouter():
             return
         
         try:
+            # Check if fleet carrier manager is initialized
+            if not self.fleet_carrier_manager:
+                self.fleet_carrier_system_label.config(text="System: Unknown", foreground="gray")
+                return
+            
             # Get the currently selected carrier's system
             carrier_system = None
-            if self.selected_carrier_callsign and self.fleet_carrier_manager:
+            if self.selected_carrier_callsign:
                 carrier = self.fleet_carrier_manager.get_carrier(self.selected_carrier_callsign)
                 if carrier:
-                    carrier_system = carrier.get('current_system', '').strip()
+                    current_system = carrier.get('current_system')
+                    if current_system:
+                        carrier_system = str(current_system).strip()
             
             # If no carrier selected, try to get the first/primary carrier
             if not carrier_system:
                 carriers = self.get_all_fleet_carriers()
                 if carriers:
                     # Get the most recently updated carrier
-                    sorted_carriers = sorted(
-                        carriers,
-                        key=lambda x: x.get('last_updated', ''),
-                        reverse=True
-                    )
-                    carrier_system = sorted_carriers[0].get('current_system', '').strip()
+                    try:
+                        sorted_carriers = sorted(
+                            carriers,
+                            key=lambda x: str(x.get('last_updated', '')),
+                            reverse=True
+                        )
+                        if sorted_carriers:
+                            current_system = sorted_carriers[0].get('current_system')
+                            if current_system:
+                                carrier_system = str(current_system).strip()
+                    except (KeyError, IndexError, TypeError):
+                        # If sorting fails, just use first carrier
+                        if carriers:
+                            current_system = carriers[0].get('current_system')
+                            if current_system:
+                                carrier_system = str(current_system).strip()
             
             if carrier_system:
                 self.fleet_carrier_system_label.config(text=f"System: {carrier_system}", foreground="")
@@ -3091,7 +3132,7 @@ class SpanshRouter():
                 self.fleet_carrier_system_label.config(text="System: Unknown", foreground="gray")
         except Exception:
             logger.warning('!! Error updating fleet carrier system display: ' + traceback.format_exc(), exc_info=False)
-            self.fleet_carrier_system_label.config(text="System: Error", foreground="red")
+            self.fleet_carrier_system_label.config(text="System: Unknown", foreground="gray")
     
     def find_tritium_near_current_system(self):
         """
@@ -3317,9 +3358,14 @@ class SpanshRouter():
             return
         
         try:
+            # Check if fleet carrier manager is initialized
+            if not self.fleet_carrier_manager:
+                self.fleet_carrier_balance_label.config(text="Balance: Unknown", foreground="gray")
+                return
+            
             # Get the currently selected carrier's balance info
             carrier = None
-            if self.selected_carrier_callsign and self.fleet_carrier_manager:
+            if self.selected_carrier_callsign:
                 carrier = self.fleet_carrier_manager.get_carrier(self.selected_carrier_callsign)
             
             # If no carrier selected, try to get the first/primary carrier
@@ -3327,29 +3373,41 @@ class SpanshRouter():
                 carriers = self.get_all_fleet_carriers()
                 if carriers:
                     # Get the most recently updated carrier
-                    sorted_carriers = sorted(
-                        carriers,
-                        key=lambda x: x.get('last_updated', ''),
-                        reverse=True
-                    )
-                    carrier = sorted_carriers[0]
+                    try:
+                        sorted_carriers = sorted(
+                            carriers,
+                            key=lambda x: str(x.get('last_updated', '')),
+                            reverse=True
+                        )
+                        if sorted_carriers:
+                            carrier = sorted_carriers[0]
+                    except (KeyError, IndexError, TypeError):
+                        # If sorting fails, just use first carrier
+                        if carriers:
+                            carrier = carriers[0]
             
             if carrier:
-                balance = carrier.get('balance', '0')
+                balance = carrier.get('balance')
                 
-                # Format balance with commas
-                try:
-                    balance_formatted = f"{int(balance):,}" if balance else "0"
-                    display_text = f"Balance: {balance_formatted} cr"
-                except (ValueError, TypeError):
-                    display_text = f"Balance: {balance} cr"
-                
-                self.fleet_carrier_balance_label.config(text=display_text, foreground="")
+                # Check if balance is missing (None or empty string)
+                if balance is None or (isinstance(balance, str) and balance.strip() == ''):
+                    self.fleet_carrier_balance_label.config(text="Balance: Unknown", foreground="gray")
+                else:
+                    # Format balance with commas
+                    try:
+                        balance_int = int(balance) if balance else 0
+                        balance_formatted = f"{balance_int:,}"
+                        display_text = f"Balance: {balance_formatted} cr"
+                        self.fleet_carrier_balance_label.config(text=display_text, foreground="")
+                    except (ValueError, TypeError):
+                        # If conversion fails, try to display as string
+                        display_text = f"Balance: {balance} cr" if balance else "Balance: Unknown"
+                        self.fleet_carrier_balance_label.config(text=display_text, foreground="gray")
             else:
                 self.fleet_carrier_balance_label.config(text="Balance: Unknown", foreground="gray")
         except Exception:
             logger.warning('!! Error updating fleet carrier balance display: ' + traceback.format_exc(), exc_info=False)
-            self.fleet_carrier_balance_label.config(text="Balance: Error", foreground="red")
+            self.fleet_carrier_balance_label.config(text="Balance: Unknown", foreground="gray")
     
     def show_route_window(self):
         """
