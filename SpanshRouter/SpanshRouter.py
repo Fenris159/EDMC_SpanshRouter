@@ -97,29 +97,30 @@ class SpanshRouter():
 
     #   -- GUI part --
     def init_gui(self, parent):
-        self.parent = parent
-        
-        # Check if GUI has already been initialized and widgets still exist
-        if self._gui_initialized:
-            if hasattr(self, 'frame') and self.frame:
-                try:
-                    if self.frame.winfo_exists():
-                        # Check if fleet carrier widgets still exist
-                        if (hasattr(self, 'fleet_carrier_status_label') and 
-                            self.fleet_carrier_status_label):
-                            try:
-                                if self.fleet_carrier_status_label.winfo_exists():
-                                    # GUI already initialized and widgets exist, return existing frame
-                                    return self.frame
-                            except (tk.TclError, AttributeError):
-                                # Widget was destroyed, need to reinitialize
-                                self._gui_initialized = False
-                except (tk.TclError, AttributeError):
-                    # Frame was destroyed, need to reinitialize
-                    self._gui_initialized = False
-        
-        # Check for and destroy any existing frames with fleet carrier widgets (defensive check)
         try:
+            self.parent = parent
+            
+            # Check if GUI has already been initialized and widgets still exist
+            if self._gui_initialized:
+                if hasattr(self, 'frame') and self.frame:
+                    try:
+                        if self.frame.winfo_exists():
+                            # Check if fleet carrier widgets still exist
+                            if (hasattr(self, 'fleet_carrier_status_label') and 
+                                self.fleet_carrier_status_label):
+                                try:
+                                    if self.fleet_carrier_status_label.winfo_exists():
+                                        # GUI already initialized and widgets exist, return existing frame
+                                        return self.frame
+                                except (tk.TclError, AttributeError):
+                                    # Widget was destroyed, need to reinitialize
+                                    self._gui_initialized = False
+                    except (tk.TclError, AttributeError):
+                        # Frame was destroyed, need to reinitialize
+                        self._gui_initialized = False
+            
+            # Check for and destroy any existing frames with fleet carrier widgets (defensive check)
+            try:
             for widget in parent.winfo_children():
                 if isinstance(widget, tk.Frame):
                     # Check if this frame has our signature widgets
@@ -152,11 +153,11 @@ class SpanshRouter():
                                     pass
                     except Exception:
                         pass
-        except Exception:
-            pass
-        
-        # Destroy existing frame if it exists
-        if hasattr(self, 'frame') and self.frame:
+            except Exception:
+                pass
+            
+            # Destroy existing frame if it exists
+            if hasattr(self, 'frame') and self.frame:
             try:
                 try:
                     self.frame.winfo_exists()
@@ -172,11 +173,11 @@ class SpanshRouter():
                     pass
             except Exception:
                 pass
-            finally:
-                self.frame = None
-        
-        # Reset fleet carrier widget references (they'll be recreated below)
-        self.fleet_carrier_status_label = None
+                finally:
+                    self.frame = None
+            
+            # Reset fleet carrier widget references (they'll be recreated below)
+            self.fleet_carrier_status_label = None
         self.fleet_carrier_combobox = None
         self.fleet_carrier_details_btn = None
         self.fleet_carrier_inara_btn = None
@@ -187,256 +188,265 @@ class SpanshRouter():
         self.fleet_carrier_pristine_cb = None
         self.fleet_carrier_tritium_label = None
         self.fleet_carrier_balance_label = None
-        self.fleet_carrier_separator = None
-        
-        # Create frame fresh
-        self.frame = tk.Frame(parent, borderwidth=2)
-        self.frame.grid(sticky=tk.NSEW, columnspan=2)
-        
-        # Fleet carrier status display (compact, at top)
-        # Create all widgets fresh
-        self.fleet_carrier_status_label = tk.Label(self.frame, text="Fleet Carrier:")
-        self.fleet_carrier_combobox = ttk.Combobox(
-            self.frame, 
-            textvariable=self.fleet_carrier_var,
-            state="readonly",
-            width=40
-        )
-        self.fleet_carrier_combobox.bind("<<ComboboxSelected>>", self.on_carrier_selected)
-        self.fleet_carrier_details_btn = tk.Button(
-            self.frame, 
-            text="View All", 
-            command=self.show_carrier_details_window,
-            width=8
-        )
-        self.fleet_carrier_inara_btn = tk.Button(
-            self.frame,
-            text="Inara",
-            command=self.open_selected_carrier_inara,
-            width=8,
-            fg="blue",
-            cursor="hand2",
-            state=tk.DISABLED
-        )
-        self.fleet_carrier_system_label = tk.Label(self.frame, text="System:", foreground="gray")
-        # Icy Rings and Pristine status - circular toggle buttons (radio-button style)
-        self.fleet_carrier_icy_rings_var = tk.BooleanVar(value=False)
-        
-        # Icy Rings toggle button
-        icy_rings_frame = tk.Frame(self.frame, bg=self.frame.cget('bg'))
-        frame_bg = self.frame.cget('bg')
-        self.fleet_carrier_icy_rings_canvas = tk.Canvas(
-            icy_rings_frame,
-            width=20,
-            height=20,
-            highlightthickness=0,
-            bg=frame_bg,
-            cursor="hand2",
-            state=tk.DISABLED  # Initially disabled
-        )
-        self.fleet_carrier_icy_rings_canvas.pack(side=tk.LEFT, padx=(0, 5))
-        self.fleet_carrier_icy_rings_canvas.bind("<Button-1>", lambda e: None)  # Disabled, no action
-        self.fleet_carrier_icy_rings_label = tk.Label(
-            icy_rings_frame,
-            text="Icy Rings:",
-            foreground="gray",
-            bg=frame_bg
-        )
-        self.fleet_carrier_icy_rings_label.pack(side=tk.LEFT)
-        self.fleet_carrier_icy_rings_cb = icy_rings_frame
-        
-        # Pristine toggle button
-        pristine_frame = tk.Frame(self.frame, bg=frame_bg)
-        self.fleet_carrier_pristine_var = tk.BooleanVar(value=False)
-        self.fleet_carrier_pristine_canvas = tk.Canvas(
-            pristine_frame,
-            width=20,
-            height=20,
-            highlightthickness=0,
-            bg=frame_bg,
-            cursor="hand2",
-            state=tk.DISABLED  # Initially disabled
-        )
-        self.fleet_carrier_pristine_canvas.pack(side=tk.LEFT, padx=(0, 5))
-        self.fleet_carrier_pristine_canvas.bind("<Button-1>", lambda e: None)  # Disabled, no action
-        self.fleet_carrier_pristine_label = tk.Label(
-            pristine_frame,
-            text="Pristine:",
-            foreground="gray",
-            bg=frame_bg
-        )
-        self.fleet_carrier_pristine_label.pack(side=tk.LEFT)
-        self.fleet_carrier_pristine_cb = pristine_frame
-        self.fleet_carrier_tritium_label = tk.Label(
-            self.frame, 
-            text="Tritium:", 
-            foreground="blue", 
-            cursor="hand2"
-        )
-        self.fleet_carrier_balance_label = tk.Label(self.frame, text="Balance:", foreground="gray")
+            self.fleet_carrier_separator = None
+            
+            # Create frame fresh
+            self.frame = tk.Frame(parent, borderwidth=2)
+            self.frame.grid(sticky=tk.NSEW, columnspan=2)
+            
+            # Fleet carrier status display (compact, at top)
+            # Create all widgets fresh
+            self.fleet_carrier_status_label = tk.Label(self.frame, text="Fleet Carrier:")
+            self.fleet_carrier_combobox = ttk.Combobox(
+                self.frame, 
+                textvariable=self.fleet_carrier_var,
+                state="readonly",
+                width=40
+            )
+            self.fleet_carrier_combobox.bind("<<ComboboxSelected>>", self.on_carrier_selected)
+            self.fleet_carrier_details_btn = tk.Button(
+                self.frame, 
+                text="View All", 
+                command=self.show_carrier_details_window,
+                width=8
+            )
+            self.fleet_carrier_inara_btn = tk.Button(
+                self.frame,
+                text="Inara",
+                command=self.open_selected_carrier_inara,
+                width=8,
+                fg="blue",
+                cursor="hand2",
+                state=tk.DISABLED
+            )
+            self.fleet_carrier_system_label = tk.Label(self.frame, text="System:", foreground="gray")
+            # Icy Rings and Pristine status - circular toggle buttons (radio-button style)
+            self.fleet_carrier_icy_rings_var = tk.BooleanVar(value=False)
+            
+            # Icy Rings toggle button
+            icy_rings_frame = tk.Frame(self.frame, bg=self.frame.cget('bg'))
+            frame_bg = self.frame.cget('bg')
+            self.fleet_carrier_icy_rings_canvas = tk.Canvas(
+                icy_rings_frame,
+                width=20,
+                height=20,
+                highlightthickness=0,
+                bg=frame_bg
+            )
+            self.fleet_carrier_icy_rings_canvas.pack(side=tk.LEFT, padx=(0, 5))
+            # No click binding - read-only display
+            self.fleet_carrier_icy_rings_label = tk.Label(
+                icy_rings_frame,
+                text="Icy Rings:",
+                foreground="gray",
+                bg=frame_bg
+            )
+            self.fleet_carrier_icy_rings_label.pack(side=tk.LEFT)
+            self.fleet_carrier_icy_rings_cb = icy_rings_frame
+            
+            # Pristine toggle button
+            pristine_frame = tk.Frame(self.frame, bg=frame_bg)
+            self.fleet_carrier_pristine_var = tk.BooleanVar(value=False)
+            self.fleet_carrier_pristine_canvas = tk.Canvas(
+                pristine_frame,
+                width=20,
+                height=20,
+                highlightthickness=0,
+                bg=frame_bg
+            )
+            self.fleet_carrier_pristine_canvas.pack(side=tk.LEFT, padx=(0, 5))
+            # No click binding - read-only display
+            self.fleet_carrier_pristine_label = tk.Label(
+                pristine_frame,
+                text="Pristine:",
+                foreground="gray",
+                bg=frame_bg
+            )
+            self.fleet_carrier_pristine_label.pack(side=tk.LEFT)
+            self.fleet_carrier_pristine_cb = pristine_frame
+            self.fleet_carrier_tritium_label = tk.Label(
+                self.frame, 
+                text="Tritium:", 
+                foreground="blue", 
+                cursor="hand2"
+            )
+            self.fleet_carrier_balance_label = tk.Label(self.frame, text="Balance:", foreground="gray")
 
-        # Route info
-        self.waypoint_prev_btn = tk.Button(self.frame, text="^", command=self.goto_prev_waypoint)
-        self.waypoint_btn = tk.Button(self.frame, text=self.next_wp_label + '\n' + self.next_stop, command=self.copy_waypoint)
-        self.waypoint_next_btn = tk.Button(self.frame, text="v", command=self.goto_next_waypoint)
-        self.jumpcounttxt_lbl = tk.Label(self.frame, text=self.jumpcountlbl_txt + str(self.jumps_left))
-        self.dist_prev_lbl = tk.Label(self.frame, text="")
-        self.dist_next_lbl = tk.Label(self.frame, text="")
-        self.fuel_used_lbl = tk.Label(self.frame, text="")
-        self.dist_remaining_lbl = tk.Label(self.frame, text="")
-        self.bodies_lbl = tk.Label(self.frame, justify=LEFT, text=self.bodieslbl_txt + self.bodies)
-        self.fleetrestock_lbl = tk.Label(self.frame, justify=LEFT, text=self.fleetstocklbl_txt, fg="red")
-        self.find_trit_btn = tk.Button(self.frame, text="Find Trit", command=self.find_tritium_on_inara, width=10)
-        self.refuel_lbl = tk.Label(self.frame, justify=LEFT, text=self.refuellbl_txt)
-        self.error_lbl = tk.Label(self.frame, textvariable=self.error_txt)
+            # Route info
+            self.waypoint_prev_btn = tk.Button(self.frame, text="^", command=self.goto_prev_waypoint)
+            self.waypoint_btn = tk.Button(self.frame, text=self.next_wp_label + '\n' + self.next_stop, command=self.copy_waypoint)
+            self.waypoint_next_btn = tk.Button(self.frame, text="v", command=self.goto_next_waypoint)
+            self.jumpcounttxt_lbl = tk.Label(self.frame, text=self.jumpcountlbl_txt + str(self.jumps_left))
+            self.dist_prev_lbl = tk.Label(self.frame, text="")
+            self.dist_next_lbl = tk.Label(self.frame, text="")
+            self.fuel_used_lbl = tk.Label(self.frame, text="")
+            self.dist_remaining_lbl = tk.Label(self.frame, text="")
+            self.bodies_lbl = tk.Label(self.frame, justify=LEFT, text=self.bodieslbl_txt + self.bodies)
+            self.fleetrestock_lbl = tk.Label(self.frame, justify=LEFT, text=self.fleetstocklbl_txt, fg="red")
+            self.find_trit_btn = tk.Button(self.frame, text="Find Trit", command=self.find_tritium_on_inara, width=10)
+            self.refuel_lbl = tk.Label(self.frame, justify=LEFT, text=self.refuellbl_txt)
+            self.error_lbl = tk.Label(self.frame, textvariable=self.error_txt)
 
-        # Plotting GUI
-        self.source_ac = AutoCompleter(self.frame, "Source System", width=30)
-        self.dest_ac = AutoCompleter(self.frame, "Destination System", width=30)
-        self.range_entry = PlaceHolder(self.frame, "Range (LY)", width=10)
-        # Supercharge toggle button - circular radio-button style that toggles like a checkbox
-        # Create a frame to hold the toggle button and label
-        supercharge_frame = tk.Frame(self.frame, bg=self.frame.cget('bg'))
-        # Create a custom toggle button using a canvas to draw a circle
-        frame_bg = self.frame.cget('bg')
-        self.supercharge_toggle_canvas = tk.Canvas(
-            supercharge_frame,
-            width=24,
-            height=24,
-            highlightthickness=0,
-            bg=frame_bg,
-            cursor="hand2"
-        )
-        self.supercharge_toggle_canvas.pack(side=tk.LEFT, padx=(0, 8))
-        
-        # Bind click event to toggle
-        self.supercharge_toggle_canvas.bind("<Button-1>", self._toggle_supercharge)
-        
-        # Create label for the text
-        self.supercharge_label = tk.Label(
-            supercharge_frame,
-            text="Supercharge",
-            foreground="orange",
-            font=("TkDefaultFont", 12),
-            bg=frame_bg,
-            cursor="hand2"
-        )
-        self.supercharge_label.pack(side=tk.LEFT)
-        self.supercharge_label.bind("<Button-1>", self._toggle_supercharge)
-        
-        # Store reference to the frame for grid positioning
-        self.supercharge_cb = supercharge_frame
-        
-        # Draw the initial circles (unchecked state) - do this after all setup
-        # Use after_idle to ensure canvas is ready
-        self.frame.after_idle(self._draw_supercharge_toggle)
-        self.frame.after_idle(self._draw_icy_rings_toggle)
-        self.frame.after_idle(self._draw_pristine_toggle)
+            # Plotting GUI
+            self.source_ac = AutoCompleter(self.frame, "Source System", width=30)
+            self.dest_ac = AutoCompleter(self.frame, "Destination System", width=30)
+            self.range_entry = PlaceHolder(self.frame, "Range (LY)", width=10)
+            # Supercharge toggle button - circular radio-button style that toggles like a checkbox
+            # Create a frame to hold the toggle button and label
+            supercharge_frame = tk.Frame(self.frame, bg=self.frame.cget('bg'))
+            # Create a custom toggle button using a canvas to draw a circle
+            frame_bg = self.frame.cget('bg')
+            self.supercharge_toggle_canvas = tk.Canvas(
+                supercharge_frame,
+                width=24,
+                height=24,
+                highlightthickness=0,
+                bg=frame_bg,
+                cursor="hand2"
+            )
+            self.supercharge_toggle_canvas.pack(side=tk.LEFT, padx=(0, 8))
+            
+            # Bind click event to toggle
+            self.supercharge_toggle_canvas.bind("<Button-1>", self._toggle_supercharge)
+            
+            # Create label for the text
+            self.supercharge_label = tk.Label(
+                supercharge_frame,
+                text="Supercharge",
+                foreground="orange",
+                font=("TkDefaultFont", 12),
+                bg=frame_bg,
+                cursor="hand2"
+            )
+            self.supercharge_label.pack(side=tk.LEFT)
+            self.supercharge_label.bind("<Button-1>", self._toggle_supercharge)
+            
+            # Store reference to the frame for grid positioning
+            self.supercharge_cb = supercharge_frame
+            
+            # Draw the initial circles (unchecked state) - do this after all setup
+            # Use after_idle to ensure canvas is ready
+            self.frame.after_idle(self._draw_supercharge_toggle)
+            self.frame.after_idle(self._draw_icy_rings_toggle)
+            self.frame.after_idle(self._draw_pristine_toggle)
 
-        self.efficiency_slider = tk.Scale(self.frame, from_=1, to=100, orient=tk.HORIZONTAL, label="Efficiency (%)")
-        self.efficiency_slider.set(60)
-        self.plot_gui_btn = tk.Button(self.frame, text="Plot route", command=self.show_plot_gui)
-        self.plot_route_btn = tk.Button(self.frame, text="Calculate", command=self.plot_route)
-        self.cancel_plot = tk.Button(self.frame, text="Cancel", command=lambda: self.show_plot_gui(False))
+            self.efficiency_slider = tk.Scale(self.frame, from_=1, to=100, orient=tk.HORIZONTAL, label="Efficiency (%)")
+            self.efficiency_slider.set(60)
+            self.plot_gui_btn = tk.Button(self.frame, text="Plot route", command=self.show_plot_gui)
+            self.plot_route_btn = tk.Button(self.frame, text="Calculate", command=self.plot_route)
+            self.cancel_plot = tk.Button(self.frame, text="Cancel", command=lambda: self.show_plot_gui(False))
 
-        self.csv_route_btn = tk.Button(self.frame, text="Import file", command=self.plot_file)
-        self.view_route_btn = tk.Button(self.frame, text="View Route", command=self.show_route_window)
-        self.export_route_btn = tk.Button(self.frame, text="Export for TCE", command=self.export_route)
-        self.clear_route_btn = tk.Button(self.frame, text="Clear route", command=self.clear_route)
+            self.csv_route_btn = tk.Button(self.frame, text="Import file", command=self.plot_file)
+            self.view_route_btn = tk.Button(self.frame, text="View Route", command=self.show_route_window)
+            self.export_route_btn = tk.Button(self.frame, text="Export for TCE", command=self.export_route)
+            self.clear_route_btn = tk.Button(self.frame, text="Clear route", command=self.clear_route)
 
-        row = 0
-        # Fleet carrier status at the top
-        # Store grid positions to prevent accidental repositioning
-        self.fleet_carrier_status_label.grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
-        self.fleet_carrier_combobox.grid(row=row, column=1, padx=5, pady=2, sticky=tk.W)
-        self.fleet_carrier_details_btn.grid(row=row, column=2, padx=2, pady=2, sticky=tk.W)
-        self.fleet_carrier_inara_btn.grid(row=row, column=3, padx=2, pady=2, sticky=tk.W)
-        # Store grid info to prevent repositioning
-        self._fleet_carrier_row_start = row
-        self.update_fleet_carrier_dropdown()
-        row += 1
-        # Fleet carrier system location
-        self.fleet_carrier_system_label.grid(row=row, column=0, columnspan=2, padx=5, pady=2, sticky=tk.W)
-        self.update_fleet_carrier_system_display()
-        row += 1
-        # Fleet carrier Icy Rings and Pristine status
-        self.fleet_carrier_icy_rings_label.grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
-        self.fleet_carrier_icy_rings_cb.grid(row=row, column=1, padx=2, pady=2, sticky=tk.W)
-        self.fleet_carrier_pristine_label.grid(row=row, column=2, padx=5, pady=2, sticky=tk.W)
-        self.fleet_carrier_pristine_cb.grid(row=row, column=3, padx=2, pady=2, sticky=tk.W)
-        self.update_fleet_carrier_rings_status()
-        row += 1
-        # Fleet carrier Tritium display (clickable to search Inara)
-        self.fleet_carrier_tritium_label.grid(row=row, column=0, columnspan=2, padx=5, pady=2, sticky=tk.W)
-        self.fleet_carrier_tritium_label.bind("<Button-1>", lambda e: self.find_tritium_near_current_system())
-        self.fleet_carrier_tritium_label.bind("<Enter>", lambda e, lbl=self.fleet_carrier_tritium_label: lbl.config(fg="darkblue", underline=True))
-        self.fleet_carrier_tritium_label.bind("<Leave>", lambda e, lbl=self.fleet_carrier_tritium_label: lbl.config(fg="blue", underline=False))
-        self.update_fleet_carrier_tritium_display()
-        row += 1
-        # Fleet carrier Balance display
-        self.fleet_carrier_balance_label.grid(row=row, column=0, columnspan=2, padx=5, pady=2, sticky=tk.W)
-        self.update_fleet_carrier_balance_display()
-        row += 1
-        # Separator line
-        self.fleet_carrier_separator = tk.Frame(self.frame, height=1, bg="gray")
-        self.fleet_carrier_separator.grid(row=row, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=2)
-        self._fleet_carrier_row_end = row  # Store end row for fleet carrier section
-        row += 1
-        # Route waypoint controls
-        self.waypoint_prev_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
-        self.dist_remaining_lbl.grid(row=row, column=2, padx=5, pady=10, sticky=tk.W)
-        row += 1
-        self.waypoint_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
-        self.dist_prev_lbl.grid(row=row, column=2, padx=5, pady=10, sticky=tk.W)
-        row += 1
-        self.waypoint_next_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
-        self.dist_next_lbl.grid(row=row, column=2, padx=5, pady=10, sticky=tk.W)
-        row += 1
-        self.fuel_used_lbl.grid(row=row, column=2, padx=5, pady=2, sticky=tk.W)
-        row += 1
-        self.bodies_lbl.grid(row=row, columnspan=2, sticky=tk.W)
-        row += 1
-        self.fleetrestock_lbl.grid(row=row, column=0, sticky=tk.W)
-        self.find_trit_btn.grid(row=row, column=1, padx=5, sticky=tk.W)
-        row += 1
-        self.refuel_lbl.grid(row=row,columnspan=2, sticky=tk.W)
-        row += 1
-        self.source_ac.grid(row=row,columnspan=2, pady=(10,0)) # The AutoCompleter takes two rows to show the list when needed, so we skip one
-        row += 2
-        self.dest_ac.grid(row=row,columnspan=2, pady=(10,0))
-        row += 2
-        self.range_entry.grid(row=row, column=0, pady=10, sticky=tk.W)
-        self.supercharge_cb.grid(row=row, column=1, padx=10, pady=10, sticky=tk.W)
-        row += 1
-        self.efficiency_slider.grid(row=row, pady=10, columnspan=2, sticky=tk.EW)
-        row += 1
-        # Basic controls - always visible, positioned in sequential columns
-        self.csv_route_btn.grid(row=row, column=0, pady=10, padx=0)
-        self.view_route_btn.grid(row=row, column=1, pady=10, padx=0)
-        self.plot_gui_btn.grid(row=row, column=2, pady=10, padx=0)
-        # Plotting controls - shown/hidden based on state
-        self.plot_route_btn.grid(row=row, column=0, pady=10, padx=0)
-        self.cancel_plot.grid(row=row, column=1, pady=10, padx=5, sticky=tk.E)
-        row += 1
-        self.export_route_btn.grid(row=row, pady=10, padx=0)
-        self.clear_route_btn.grid(row=row, column=1, pady=10, padx=5, sticky=tk.W)
-        row += 1
-        self.jumpcounttxt_lbl.grid(row=row, pady=5, sticky=tk.W)
-        row += 1
-        self.error_lbl.grid(row=row, columnspan=2)
-        self.error_lbl.grid_remove()
-        row += 1
+            row = 0
+            # Fleet carrier status at the top
+            # Store grid positions to prevent accidental repositioning
+            self.fleet_carrier_status_label.grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+            self.fleet_carrier_combobox.grid(row=row, column=1, padx=5, pady=2, sticky=tk.W)
+            self.fleet_carrier_details_btn.grid(row=row, column=2, padx=2, pady=2, sticky=tk.W)
+            self.fleet_carrier_inara_btn.grid(row=row, column=3, padx=2, pady=2, sticky=tk.W)
+            # Store grid info to prevent repositioning
+            self._fleet_carrier_row_start = row
+            self.update_fleet_carrier_dropdown()
+            row += 1
+            # Fleet carrier system location
+            self.fleet_carrier_system_label.grid(row=row, column=0, columnspan=2, padx=5, pady=2, sticky=tk.W)
+            self.update_fleet_carrier_system_display()
+            row += 1
+            # Fleet carrier Icy Rings and Pristine status
+            self.fleet_carrier_icy_rings_label.grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+            self.fleet_carrier_icy_rings_cb.grid(row=row, column=1, padx=2, pady=2, sticky=tk.W)
+            self.fleet_carrier_pristine_label.grid(row=row, column=2, padx=5, pady=2, sticky=tk.W)
+            self.fleet_carrier_pristine_cb.grid(row=row, column=3, padx=2, pady=2, sticky=tk.W)
+            self.update_fleet_carrier_rings_status()
+            row += 1
+            # Fleet carrier Tritium display (clickable to search Inara)
+            self.fleet_carrier_tritium_label.grid(row=row, column=0, columnspan=2, padx=5, pady=2, sticky=tk.W)
+            self.fleet_carrier_tritium_label.bind("<Button-1>", lambda e: self.find_tritium_near_current_system())
+            self.fleet_carrier_tritium_label.bind("<Enter>", lambda e, lbl=self.fleet_carrier_tritium_label: lbl.config(fg="darkblue", underline=True))
+            self.fleet_carrier_tritium_label.bind("<Leave>", lambda e, lbl=self.fleet_carrier_tritium_label: lbl.config(fg="blue", underline=False))
+            self.update_fleet_carrier_tritium_display()
+            row += 1
+            # Fleet carrier Balance display
+            self.fleet_carrier_balance_label.grid(row=row, column=0, columnspan=2, padx=5, pady=2, sticky=tk.W)
+            self.update_fleet_carrier_balance_display()
+            row += 1
+            # Separator line
+            self.fleet_carrier_separator = tk.Frame(self.frame, height=1, bg="gray")
+            self.fleet_carrier_separator.grid(row=row, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=2)
+            self._fleet_carrier_row_end = row  # Store end row for fleet carrier section
+            row += 1
+            # Route waypoint controls
+            self.waypoint_prev_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
+            self.dist_remaining_lbl.grid(row=row, column=2, padx=5, pady=10, sticky=tk.W)
+            row += 1
+            self.waypoint_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
+            self.dist_prev_lbl.grid(row=row, column=2, padx=5, pady=10, sticky=tk.W)
+            row += 1
+            self.waypoint_next_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
+            self.dist_next_lbl.grid(row=row, column=2, padx=5, pady=10, sticky=tk.W)
+            row += 1
+            self.fuel_used_lbl.grid(row=row, column=2, padx=5, pady=2, sticky=tk.W)
+            row += 1
+            self.bodies_lbl.grid(row=row, columnspan=2, sticky=tk.W)
+            row += 1
+            self.fleetrestock_lbl.grid(row=row, column=0, sticky=tk.W)
+            self.find_trit_btn.grid(row=row, column=1, padx=5, sticky=tk.W)
+            row += 1
+            self.refuel_lbl.grid(row=row,columnspan=2, sticky=tk.W)
+            row += 1
+            self.source_ac.grid(row=row,columnspan=2, pady=(10,0)) # The AutoCompleter takes two rows to show the list when needed, so we skip one
+            row += 2
+            self.dest_ac.grid(row=row,columnspan=2, pady=(10,0))
+            row += 2
+            self.range_entry.grid(row=row, column=0, pady=10, sticky=tk.W)
+            self.supercharge_cb.grid(row=row, column=1, padx=10, pady=10, sticky=tk.W)
+            row += 1
+            self.efficiency_slider.grid(row=row, pady=10, columnspan=2, sticky=tk.EW)
+            row += 1
+            # Basic controls - always visible, positioned in sequential columns
+            self.csv_route_btn.grid(row=row, column=0, pady=10, padx=0)
+            self.view_route_btn.grid(row=row, column=1, pady=10, padx=0)
+            self.plot_gui_btn.grid(row=row, column=2, pady=10, padx=0)
+            # Plotting controls - shown/hidden based on state
+            self.plot_route_btn.grid(row=row, column=0, pady=10, padx=0)
+            self.cancel_plot.grid(row=row, column=1, pady=10, padx=5, sticky=tk.E)
+            row += 1
+            self.export_route_btn.grid(row=row, pady=10, padx=0)
+            self.clear_route_btn.grid(row=row, column=1, pady=10, padx=5, sticky=tk.W)
+            row += 1
+            self.jumpcounttxt_lbl.grid(row=row, pady=5, sticky=tk.W)
+            row += 1
+            self.error_lbl.grid(row=row, columnspan=2)
+            self.error_lbl.grid_remove()
+            row += 1
 
-        # Check if we're having a valid range on the fly
-        self.range_entry.var.trace('w', self.check_range)
+            # Check if we're having a valid range on the fly
+            self.range_entry.var.trace('w', self.check_range)
 
-        # Initialize GUI to appropriate state
-        self.update_gui()
-        
-        # Mark GUI as initialized
-        self._gui_initialized = True
+            # Initialize GUI to appropriate state
+            self.update_gui()
+            
+            # Mark GUI as initialized
+            self._gui_initialized = True
 
-        return self.frame
+            return self.frame
+        except Exception as e:
+            logger.error(f"Error in init_gui: {traceback.format_exc()}")
+            # Try to return a minimal frame so plugin doesn't completely disappear
+            try:
+                if not hasattr(self, 'frame') or not self.frame:
+                    self.frame = tk.Frame(parent, borderwidth=2)
+                    self.frame.grid(sticky=tk.NSEW, columnspan=2)
+                    error_label = tk.Label(self.frame, text=f"Error loading plugin: {str(e)}", fg="red")
+                    error_label.pack()
+                return self.frame
+            except Exception:
+                # Last resort - return None and let EDMC handle it
+                return None
     
     def _draw_supercharge_toggle(self):
         """

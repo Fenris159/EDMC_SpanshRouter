@@ -156,21 +156,35 @@ def ask_for_update():
 
 def plugin_app(parent):
     global spansh_router
-    frame = spansh_router.init_gui(parent)
-    spansh_router.open_last_route()
+    import logging
+    import traceback
+    logger = logging.getLogger('EDMC_SpanshRouter')
+    
+    try:
+        frame = spansh_router.init_gui(parent)
+        if not frame:
+            logger.error("init_gui returned None - plugin will not display")
+            return None
+        
+        spansh_router.open_last_route()
         # Update fleet carrier status display if carrier data exists
-    if hasattr(spansh_router, 'update_fleet_carrier_dropdown'):
-        spansh_router.update_fleet_carrier_dropdown()
-    if hasattr(spansh_router, 'update_fleet_carrier_system_display'):
-        spansh_router.update_fleet_carrier_system_display()
-    if hasattr(spansh_router, 'update_fleet_carrier_rings_status'):
-        spansh_router.update_fleet_carrier_rings_status()
-    if hasattr(spansh_router, 'update_fleet_carrier_tritium_display'):
-        spansh_router.update_fleet_carrier_tritium_display()
-    if hasattr(spansh_router, 'update_fleet_carrier_balance_display'):
-        spansh_router.update_fleet_carrier_balance_display()
-    parent.master.after_idle(ask_for_update)
-    return frame
+        if hasattr(spansh_router, 'update_fleet_carrier_dropdown'):
+            spansh_router.update_fleet_carrier_dropdown()
+        if hasattr(spansh_router, 'update_fleet_carrier_system_display'):
+            spansh_router.update_fleet_carrier_system_display()
+        if hasattr(spansh_router, 'update_fleet_carrier_rings_status'):
+            spansh_router.update_fleet_carrier_rings_status()
+        if hasattr(spansh_router, 'update_fleet_carrier_tritium_display'):
+            spansh_router.update_fleet_carrier_tritium_display()
+        if hasattr(spansh_router, 'update_fleet_carrier_balance_display'):
+            spansh_router.update_fleet_carrier_balance_display()
+        parent.master.after_idle(ask_for_update)
+        return frame
+    except Exception as e:
+        logger.error(f"Error in plugin_app: {traceback.format_exc()}")
+        import tkinter.messagebox as confirmDialog
+        confirmDialog.showerror("SpanshRouter Error", f"Failed to initialize plugin:\n{str(e)}\n\nCheck EDMC log for details.")
+        return None
 
 
 def capi_fleetcarrier(data):
