@@ -1547,8 +1547,21 @@ class SpanshRouter():
 
             # Otherwise: accepted, poll job state
             self.enable_plot_gui(False)
-            response = json.loads(results.content)
+            try:
+                response = json.loads(results.content)
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.warning(f"Failed to parse Spansh response: {e}")
+                self.enable_plot_gui(True)
+                self.show_error("Invalid response from Spansh. Please try again.")
+                return
+            
             job = response.get("job")
+            if not job:
+                logger.warning("No job ID in Spansh response")
+                self.enable_plot_gui(True)
+                self.show_error("Failed to start route calculation. Please try again.")
+                return
+            
             tries = 0
             route_response = None
 
@@ -1557,7 +1570,8 @@ class SpanshRouter():
 
                 try:
                     route_response = requests.get(results_url, timeout=5)
-                except (requests.RequestException, requests.Timeout):
+                except (requests.RequestException, requests.Timeout) as e:
+                    logger.warning(f"Error polling Spansh results: {e}")
                     route_response = None
                     break
 
@@ -1577,11 +1591,23 @@ class SpanshRouter():
             # Final response OK
             if route_response.status_code == 200:
                 try:
-                    route = json.loads(route_response.content)["result"]["system_jumps"]
-                except Exception as e:
+                    response_data = json.loads(route_response.content)
+                    if "result" not in response_data or "system_jumps" not in response_data["result"]:
+                        logger.warning(f"Unexpected Spansh response structure: {response_data}")
+                        self.enable_plot_gui(True)
+                        self.show_error("Invalid route data from Spansh. Please try again.")
+                        return
+                    route = response_data["result"]["system_jumps"]
+                except (json.JSONDecodeError, ValueError, KeyError) as e:
                     logger.warning(f"Invalid data from Spansh: {e}")
                     self.enable_plot_gui(True)
                     self.show_error(self.plot_error)
+                    return
+
+                if not route or len(route) == 0:
+                    logger.warning("Empty route returned from Spansh")
+                    self.enable_plot_gui(True)
+                    self.show_error("No route found between the specified systems.")
                     return
 
                 # Clear previous route silently
@@ -1608,6 +1634,12 @@ class SpanshRouter():
                     except (ValueError, TypeError):
                         pass
 
+                if len(self.route) == 0:
+                    logger.warning("Route list is empty after processing")
+                    self.enable_plot_gui(True)
+                    self.show_error("Failed to process route data. Please try again.")
+                    return
+
                 self.enable_plot_gui(True)
                 self.show_plot_gui(False)
 
@@ -1628,6 +1660,7 @@ class SpanshRouter():
                 if self.fleetcarrier and hasattr(self, 'check_fleet_carrier_restock_warning'):
                     self.check_fleet_carrier_restock_warning()
                 self.save_all_route()
+                logger.info(f"Route calculated successfully: {len(self.route)} waypoints")
                 return
 
             # Otherwise: Spansh error on final poll
@@ -1808,7 +1841,37 @@ class SpanshRouter():
                         ])
                 return
 
-            # --- Generic with distances ---
+            # --- Standard route (from Spansh API) ---
+            # Default format for routes calculated via API - has System Name, Jumps, Distance To Arrival, Distance Remaining
+            if len(self.route) > 0 and len(self.route[0]) >= 2:
+                # Check if this is a neutron route format (5 columns) or standard API route (4 columns)
+                is_neutron_format = len(self.route[0]) >= 5
+                
+                if is_neutron_format:
+                    # Neutron route format
+                    fieldnames = [
+                        "System Name",
+                        "Distance To Arrival",
+                        "Distance Remaining",
+                        "Neutron Star",
+                        "Jumps"
+                    ]
+                else:
+                    # Standard API route format
+                    fieldnames = [
+                        self.system_header,
+                        self.jumps_header,
+                        "Distance To Arrival",
+                        "Distance Remaining"
+                    ]
+                
+                with open(self.save_route_path, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(fieldnames)
+                    writer.writerows(self.route)
+                return
+            
+            # --- Generic with distances (neutron route format) ---
             if any(len(r) >= 4 for r in self.route):
                 fieldnames = [
                     "System Name",
@@ -2403,7 +2466,8 @@ class SpanshRouter():
                 
                 # Icy Rings (read-only checkbox) - checkbox only, center-aligned
                 icy_rings_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                icy_rings_value = icy_rings.lower() == 'yes' if icy_rings else False
+                icy_rings_str = str(icy_rings).strip().lower() if icy_rings else ''
+                icy_rings_value = icy_rings_str == 'yes'
                 icy_rings_var = tk.BooleanVar(value=icy_rings_value)
                 icy_rings_cb = tk.Checkbutton(table_frame, variable=icy_rings_var, state=tk.DISABLED, text="", width=icy_rings_width, bg=row_bg)
                 icy_rings_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.EW)
@@ -2414,7 +2478,8 @@ class SpanshRouter():
                 
                 # Pristine (read-only checkbox) - checkbox only, center-aligned
                 pristine_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                pristine_value = pristine.lower() == 'yes' if pristine else False
+                pristine_str = str(pristine).strip().lower() if pristine else ''
+                pristine_value = pristine_str == 'yes'
                 pristine_var = tk.BooleanVar(value=pristine_value)
                 pristine_cb = tk.Checkbutton(table_frame, variable=pristine_var, state=tk.DISABLED, text="", width=pristine_width, bg=row_bg)
                 pristine_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.EW)
@@ -2425,7 +2490,8 @@ class SpanshRouter():
                 
                 # Docking Access (read-only checkbox) - checkbox only, center-aligned
                 docking_access_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                docking_access_value = docking_access.lower() in ['yes', 'all', 'friends', 'squadron'] if docking_access else False
+                docking_access_str = str(docking_access).strip().lower() if docking_access else ''
+                docking_access_value = docking_access_str in ['yes', 'all', 'friends', 'squadron']
                 docking_access_var = tk.BooleanVar(value=docking_access_value)
                 docking_access_cb = tk.Checkbutton(table_frame, variable=docking_access_var, state=tk.DISABLED, text="", width=docking_access_width, bg=row_bg)
                 docking_access_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.EW)
@@ -2436,7 +2502,11 @@ class SpanshRouter():
                 
                 # Notorious Access (read-only checkbox) - checkbox only, center-aligned
                 notorious_access_width = column_widths[col_idx] if col_idx < len(column_widths) else 20
-                notorious_access_value = notorious_access.lower() in ['true', 'yes', '1'] if isinstance(notorious_access, str) else bool(notorious_access) if notorious_access else False
+                if isinstance(notorious_access, str):
+                    notorious_access_str = notorious_access.strip().lower()
+                    notorious_access_value = notorious_access_str in ['true', 'yes', '1']
+                else:
+                    notorious_access_value = bool(notorious_access) if notorious_access else False
                 notorious_access_var = tk.BooleanVar(value=notorious_access_value)
                 notorious_access_cb = tk.Checkbutton(table_frame, variable=notorious_access_var, state=tk.DISABLED, text="", width=notorious_access_width, bg=row_bg)
                 notorious_access_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.EW)
@@ -3246,8 +3316,10 @@ class SpanshRouter():
                     
                     # Checkbox columns (yes/no fields) - checkbox only, no text, center-aligned
                     if field_lower in checkbox_columns:
-                        checkbox_value = value.lower()
-                        checkbox_var = tk.BooleanVar(value=(checkbox_value == 'yes'))
+                        # Strip whitespace and convert to lowercase for comparison
+                        checkbox_value_str = str(value).strip().lower() if value else ''
+                        checkbox_value = checkbox_value_str == 'yes'
+                        checkbox_var = tk.BooleanVar(value=checkbox_value)
                         # Checkbox with no text, center-aligned in column
                         checkbox_cb = tk.Checkbutton(table_frame, variable=checkbox_var, state=tk.DISABLED, text="", width=col_width, bg=row_bg)
                         checkbox_cb.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.EW)
