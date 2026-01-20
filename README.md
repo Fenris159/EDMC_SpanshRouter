@@ -212,7 +212,28 @@ This plugin is configured as a **Package Plugin** (contains both `__init__.py` a
 
 ## Updates
 
-**Note:** Auto-updates are not maintained in this fork. To update, download the latest code from this repository and replace your plugin files manually.
+The plugin features an **automatic update system** that checks for new versions when EDMC starts.
+
+### How Auto-Updates Work
+
+1. **Automatic Check**: When EDMC starts, the plugin automatically checks the GitHub repository (`Fenris159/EDMC_SpanshRouter`) for new versions by comparing the local `version.json` with the remote version.
+
+2. **Update Notification**: If a new version is available, a dialog will appear showing:
+   - The new version number
+   - The changelog from the GitHub release
+   - A prompt asking if you want to install the update
+
+3. **Installation**: If you choose to install:
+   - The update will be downloaded when you close EDMC
+   - The plugin files will be automatically updated
+   - You'll need to restart EDMC for the update to take effect
+
+4. **Manual Updates**: If you prefer to update manually, you can:
+   - Download the latest release from the [GitHub repository](https://github.com/Fenris159/EDMC_SpanshRouter/releases)
+   - Extract and replace the plugin files in your EDMC plugins folder
+   - Restart EDMC
+
+**Note**: The auto-update system requires an active internet connection to check for updates. Updates are only downloaded if you confirm the installation prompt.
 
 ## Known Issues
 
