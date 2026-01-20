@@ -403,6 +403,7 @@ class FleetCarrierManager:
         if carrier_id:
             # We'd need to store CarrierID from CAPI to match this
             # For now, skip this method
+            pass
         
         # Use state data if available (Location/Cargo events)
         if state:
