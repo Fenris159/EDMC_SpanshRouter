@@ -2,6 +2,7 @@ import ast
 import csv
 import json
 import logging
+import math
 import os
 import re
 import subprocess
@@ -218,23 +219,54 @@ class SpanshRouter():
             state=tk.DISABLED
         )
         self.fleet_carrier_system_label = tk.Label(self.frame, text="System:", foreground="gray")
-        # Icy Rings and Pristine status checkboxes
+        # Icy Rings and Pristine status - circular toggle buttons (radio-button style)
         self.fleet_carrier_icy_rings_var = tk.BooleanVar(value=False)
-        self.fleet_carrier_icy_rings_label = tk.Label(self.frame, text="Icy Rings:", foreground="gray")
-        self.fleet_carrier_icy_rings_cb = tk.Checkbutton(
-            self.frame, 
-            variable=self.fleet_carrier_icy_rings_var, 
-            state=tk.DISABLED,
-            text=""
+        
+        # Icy Rings toggle button
+        icy_rings_frame = tk.Frame(self.frame, bg=self.frame.cget('bg'))
+        frame_bg = self.frame.cget('bg')
+        self.fleet_carrier_icy_rings_canvas = tk.Canvas(
+            icy_rings_frame,
+            width=20,
+            height=20,
+            highlightthickness=0,
+            bg=frame_bg,
+            cursor="hand2",
+            state=tk.DISABLED  # Initially disabled
         )
+        self.fleet_carrier_icy_rings_canvas.pack(side=tk.LEFT, padx=(0, 5))
+        self.fleet_carrier_icy_rings_canvas.bind("<Button-1>", lambda e: None)  # Disabled, no action
+        self.fleet_carrier_icy_rings_label = tk.Label(
+            icy_rings_frame,
+            text="Icy Rings:",
+            foreground="gray",
+            bg=frame_bg
+        )
+        self.fleet_carrier_icy_rings_label.pack(side=tk.LEFT)
+        self.fleet_carrier_icy_rings_cb = icy_rings_frame
+        
+        # Pristine toggle button
+        pristine_frame = tk.Frame(self.frame, bg=frame_bg)
         self.fleet_carrier_pristine_var = tk.BooleanVar(value=False)
-        self.fleet_carrier_pristine_label = tk.Label(self.frame, text="Pristine:", foreground="gray")
-        self.fleet_carrier_pristine_cb = tk.Checkbutton(
-            self.frame, 
-            variable=self.fleet_carrier_pristine_var, 
-            state=tk.DISABLED,
-            text=""
+        self.fleet_carrier_pristine_canvas = tk.Canvas(
+            pristine_frame,
+            width=20,
+            height=20,
+            highlightthickness=0,
+            bg=frame_bg,
+            cursor="hand2",
+            state=tk.DISABLED  # Initially disabled
         )
+        self.fleet_carrier_pristine_canvas.pack(side=tk.LEFT, padx=(0, 5))
+        self.fleet_carrier_pristine_canvas.bind("<Button-1>", lambda e: None)  # Disabled, no action
+        self.fleet_carrier_pristine_label = tk.Label(
+            pristine_frame,
+            text="Pristine:",
+            foreground="gray",
+            bg=frame_bg
+        )
+        self.fleet_carrier_pristine_label.pack(side=tk.LEFT)
+        self.fleet_carrier_pristine_cb = pristine_frame
         self.fleet_carrier_tritium_label = tk.Label(
             self.frame, 
             text="Tritium:", 
@@ -262,7 +294,44 @@ class SpanshRouter():
         self.source_ac = AutoCompleter(self.frame, "Source System", width=30)
         self.dest_ac = AutoCompleter(self.frame, "Destination System", width=30)
         self.range_entry = PlaceHolder(self.frame, "Range (LY)", width=10)
-        self.supercharge_cb = tk.Checkbutton(self.frame, text="Supercharge", variable=self.supercharge_overcharge)
+        # Supercharge toggle button - circular radio-button style that toggles like a checkbox
+        # Create a frame to hold the toggle button and label
+        supercharge_frame = tk.Frame(self.frame, bg=self.frame.cget('bg'))
+        # Create a custom toggle button using a canvas to draw a circle
+        frame_bg = self.frame.cget('bg')
+        self.supercharge_toggle_canvas = tk.Canvas(
+            supercharge_frame,
+            width=24,
+            height=24,
+            highlightthickness=0,
+            bg=frame_bg,
+            cursor="hand2"
+        )
+        self.supercharge_toggle_canvas.pack(side=tk.LEFT, padx=(0, 8))
+        
+        # Bind click event to toggle
+        self.supercharge_toggle_canvas.bind("<Button-1>", self._toggle_supercharge)
+        
+        # Create label for the text
+        self.supercharge_label = tk.Label(
+            supercharge_frame,
+            text="Supercharge",
+            foreground="orange",
+            font=("TkDefaultFont", 12),
+            bg=frame_bg,
+            cursor="hand2"
+        )
+        self.supercharge_label.pack(side=tk.LEFT)
+        self.supercharge_label.bind("<Button-1>", self._toggle_supercharge)
+        
+        # Store reference to the frame for grid positioning
+        self.supercharge_cb = supercharge_frame
+        
+        # Draw the initial circles (unchecked state) - do this after all setup
+        # Use after_idle to ensure canvas is ready
+        self.frame.after_idle(self._draw_supercharge_toggle)
+        self.frame.after_idle(self._draw_icy_rings_toggle)
+        self.frame.after_idle(self._draw_pristine_toggle)
 
         self.efficiency_slider = tk.Scale(self.frame, from_=1, to=100, orient=tk.HORIZONTAL, label="Efficiency (%)")
         self.efficiency_slider.set(60)
@@ -368,6 +437,138 @@ class SpanshRouter():
         self._gui_initialized = True
 
         return self.frame
+    
+    def _draw_supercharge_toggle(self):
+        """
+        Draw the circular toggle button (radio-button style) for Supercharge.
+        Shows filled orange circle when checked, empty circle when unchecked.
+        """
+        if not hasattr(self, 'supercharge_toggle_canvas'):
+            return
+        
+        try:
+            # Clear the canvas
+            self.supercharge_toggle_canvas.delete("all")
+            
+            # Get the current state
+            is_checked = self.supercharge_overcharge.get()
+            
+            # Get background color
+            try:
+                bg_color = self.supercharge_toggle_canvas.cget('bg')
+            except:
+                bg_color = "white"
+            
+            # Draw outer circle (always visible) - larger size (20x20 circle in 24x24 canvas)
+            self.supercharge_toggle_canvas.create_oval(
+                2, 2, 22, 22,
+                outline="orange",
+                width=2,
+                fill=bg_color if not is_checked else "orange"
+            )
+            
+            # If checked, draw inner filled circle
+            if is_checked:
+                self.supercharge_toggle_canvas.create_oval(
+                    7, 7, 17, 17,
+                    outline="orange",
+                    fill="orange",
+                    width=1
+                )
+        except Exception:
+            # Silently fail if canvas isn't ready yet
+            pass
+    
+    def _toggle_supercharge(self, event=None):
+        """
+        Toggle the supercharge state and redraw the toggle button.
+        """
+        # Toggle the boolean variable
+        current_state = self.supercharge_overcharge.get()
+        self.supercharge_overcharge.set(not current_state)
+        
+        # Redraw the toggle button
+        self._draw_supercharge_toggle()
+    
+    def _draw_icy_rings_toggle(self):
+        """
+        Draw the circular toggle button for Icy Rings (read-only display).
+        Shows filled circle when checked, empty circle when unchecked.
+        """
+        if not hasattr(self, 'fleet_carrier_icy_rings_canvas'):
+            return
+        
+        try:
+            # Clear the canvas
+            self.fleet_carrier_icy_rings_canvas.delete("all")
+            
+            # Get the current state
+            is_checked = self.fleet_carrier_icy_rings_var.get()
+            
+            # Get background color
+            try:
+                bg_color = self.fleet_carrier_icy_rings_canvas.cget('bg')
+            except:
+                bg_color = "white"
+            
+            # Draw outer circle (always visible)
+            self.fleet_carrier_icy_rings_canvas.create_oval(
+                2, 2, 18, 18,
+                outline="gray",
+                width=2,
+                fill=bg_color if not is_checked else "gray"
+            )
+            
+            # If checked, draw inner filled circle
+            if is_checked:
+                self.fleet_carrier_icy_rings_canvas.create_oval(
+                    6, 6, 14, 14,
+                    outline="gray",
+                    fill="gray",
+                    width=1
+                )
+        except Exception:
+            pass
+    
+    def _draw_pristine_toggle(self):
+        """
+        Draw the circular toggle button for Pristine (read-only display).
+        Shows filled circle when checked, empty circle when unchecked.
+        """
+        if not hasattr(self, 'fleet_carrier_pristine_canvas'):
+            return
+        
+        try:
+            # Clear the canvas
+            self.fleet_carrier_pristine_canvas.delete("all")
+            
+            # Get the current state
+            is_checked = self.fleet_carrier_pristine_var.get()
+            
+            # Get background color
+            try:
+                bg_color = self.fleet_carrier_pristine_canvas.cget('bg')
+            except:
+                bg_color = "white"
+            
+            # Draw outer circle (always visible)
+            self.fleet_carrier_pristine_canvas.create_oval(
+                2, 2, 18, 18,
+                outline="gray",
+                width=2,
+                fill=bg_color if not is_checked else "gray"
+            )
+            
+            # If checked, draw inner filled circle
+            if is_checked:
+                self.fleet_carrier_pristine_canvas.create_oval(
+                    6, 6, 14, 14,
+                    outline="gray",
+                    fill="gray",
+                    width=1
+                )
+        except Exception:
+            pass
 
     def show_plot_gui(self, show=True):
         """Show or hide the route plotting interface"""
@@ -681,8 +882,11 @@ class SpanshRouter():
             return
 
         def safe_flt(x):
+            """Convert to float, rounding UP to nearest hundredth (2 decimal places)"""
             try:
-                return float(x)
+                val = float(x)
+                # Round UP to nearest hundredth: multiply by 100, ceil, divide by 100
+                return math.ceil(val * 100) / 100
             except Exception:
                 return None
 
@@ -1029,17 +1233,31 @@ class SpanshRouter():
             def get_distance_fields(row):
                 dist_to_arrival = get_field(row, "Distance To Arrival", "") or get_field(row, "Distance", "")
                 dist_remaining = get_field(row, "Distance Remaining", "")
-                return dist_to_arrival, dist_remaining
+                
+                # Round distance values UP to nearest hundredth (2 decimal places)
+                def round_distance(value):
+                    if not value or value == "":
+                        return ""
+                    try:
+                        val = float(value)
+                        # Round UP to nearest hundredth: multiply by 100, ceil, divide by 100
+                        rounded = math.ceil(val * 100) / 100
+                        return f"{rounded:.2f}"
+                    except (ValueError, TypeError):
+                        return value  # Return as-is if not a number
+                
+                return round_distance(dist_to_arrival), round_distance(dist_remaining)
 
             # --- neutron import ---
             if headerline_lower == neutronimportheader.lower():
                 for row in route_reader:
                     if row not in (None, "", []):
+                        dist_to_arrival, dist_remaining = get_distance_fields(row)
                         self.route.append([
                             get_field(row, self.system_header),
                             get_field(row, self.jumps_header, ""),
-                            get_field(row, "Distance To Arrival", ""),
-                            get_field(row, "Distance Remaining", "")
+                            dist_to_arrival,
+                            dist_remaining
                         ])
                         try:
                             jumps_val = get_field(row, self.jumps_header, "0")
@@ -1067,11 +1285,12 @@ class SpanshRouter():
 
                 for row in route_reader:
                     if row not in (None, "", []):
+                        dist_to_arrival, dist_remaining = get_distance_fields(row)
                         self.route.append([
                             get_field(row, self.system_header),
                             get_field(row, self.jumps_header),
-                            get_field(row, "Distance To Arrival", ""),
-                            get_field(row, "Distance Remaining", ""),
+                            dist_to_arrival,
+                            dist_remaining,
                             get_field(row, self.restocktritium_header, "")
                         ])
                         try:
@@ -1876,10 +2095,18 @@ class SpanshRouter():
             column_widths = [8, 12, 20, 20, 15, 15, 20, 15, 15, 12, 12, 15, 18, 20]
             
             # Calculate required width based on columns
-            # Estimate width: column_widths * 10 (approximate pixels per character) + padding
-            total_column_width = sum(column_widths) * 10 + 150  # Add padding for buttons/scrollbars
+            # More accurate estimate: column_widths * 8-10 pixels per character + padding + separators
+            # Account for separators (one between each column, ~2px each)
+            num_separators = len(headers) - 1
+            separator_width = num_separators * 2
+            # Use 9 pixels per character width for more accurate sizing
+            total_column_width = sum(column_widths) * 9 + separator_width + 200  # Add padding for buttons/scrollbars/margins
             screen_width = details_window.winfo_screenwidth()
-            window_width = min(total_column_width, screen_width - 50)  # Leave 50px margin from screen edges
+            # Open window wide enough to show all columns, but don't exceed screen width
+            # If content is wider than screen, user can scroll horizontally
+            window_width = min(total_column_width, screen_width - 20)  # Leave small margin from screen edges
+            # Ensure minimum width so content isn't cut off
+            window_width = max(window_width, 800)  # At least 800px wide
             
             # Create main container with horizontal and vertical scrolling
             main_frame = tk.Frame(details_window, bg="white")
@@ -1932,7 +2159,11 @@ class SpanshRouter():
             header_frame.pack(fill=tk.X, padx=5, pady=5)
             for i, header in enumerate(headers):
                 label = tk.Label(header_frame, text=header, font=("Arial", 9, "bold"), bg="lightgray", width=column_widths[i])
-                label.grid(row=0, column=i, padx=2, pady=5, sticky=tk.W)
+                label.grid(row=0, column=i*2, padx=2, pady=5, sticky=tk.W)
+                # Add vertical separator after each column (except the last)
+                if i < len(headers) - 1:
+                    separator = ttk.Separator(header_frame, orient=tk.VERTICAL)
+                    separator.grid(row=0, column=i*2+1, padx=0, pady=2, sticky=tk.NS)
             
             # Carrier rows
             for idx, carrier in enumerate(sorted(carriers, key=lambda x: x.get('last_updated', ''), reverse=True)):
@@ -1980,6 +2211,9 @@ class SpanshRouter():
                     relief=tk.RAISED
                 )
                 select_btn.grid(row=0, column=0, padx=2, pady=5, sticky=tk.W)
+                # Add separator after Select column
+                separator0 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator0.grid(row=0, column=1, padx=0, pady=2, sticky=tk.NS)
                 
                 # Highlight if this is the currently selected carrier
                 if callsign == self.selected_carrier_callsign:
@@ -1987,74 +2221,108 @@ class SpanshRouter():
                 
                 # Callsign (clickable to Inara)
                 callsign_label = tk.Label(row_frame, text=callsign, fg="blue", cursor="hand2", width=12, anchor="w")
-                callsign_label.grid(row=0, column=1, padx=2, pady=5, sticky=tk.W)
+                callsign_label.grid(row=0, column=2, padx=2, pady=5, sticky=tk.W)
                 callsign_label.bind("<Button-1>", lambda e, c=callsign: self.open_inara_carrier(c))
                 callsign_label.bind("<Enter>", lambda e, lbl=callsign_label: lbl.config(fg="darkblue", underline=True))
                 callsign_label.bind("<Leave>", lambda e, lbl=callsign_label: lbl.config(fg="blue", underline=False))
+                separator1 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator1.grid(row=0, column=3, padx=0, pady=2, sticky=tk.NS)
                 
                 # Name (clickable to Inara)
                 name_label = tk.Label(row_frame, text=name, fg="blue", cursor="hand2", width=20, anchor="w")
-                name_label.grid(row=0, column=2, padx=2, pady=5, sticky=tk.W)
+                name_label.grid(row=0, column=4, padx=2, pady=5, sticky=tk.W)
                 name_label.bind("<Button-1>", lambda e, c=callsign: self.open_inara_carrier(c))
                 name_label.bind("<Enter>", lambda e, lbl=name_label: lbl.config(fg="darkblue", underline=True))
                 name_label.bind("<Leave>", lambda e, lbl=name_label: lbl.config(fg="blue", underline=False))
+                separator2 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator2.grid(row=0, column=5, padx=0, pady=2, sticky=tk.NS)
                 
                 # System (clickable to Inara)
                 system_label = tk.Label(row_frame, text=system, fg="blue", cursor="hand2", width=20, anchor="w")
-                system_label.grid(row=0, column=3, padx=2, pady=5, sticky=tk.W)
+                system_label.grid(row=0, column=6, padx=2, pady=5, sticky=tk.W)
                 system_label.bind("<Button-1>", lambda e, s=system: self.open_inara_system(s))
                 system_label.bind("<Enter>", lambda e, lbl=system_label: lbl.config(fg="darkblue", underline=True))
                 system_label.bind("<Leave>", lambda e, lbl=system_label: lbl.config(fg="blue", underline=False))
+                separator3 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator3.grid(row=0, column=7, padx=0, pady=2, sticky=tk.NS)
                 
                 # Tritium (fuel / cargo)
-                tk.Label(row_frame, text=tritium_text, width=15, anchor="w").grid(row=0, column=4, padx=2, pady=5, sticky=tk.W)
+                tk.Label(row_frame, text=tritium_text, width=15, anchor="w").grid(row=0, column=8, padx=2, pady=5, sticky=tk.W)
+                separator4 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator4.grid(row=0, column=9, padx=0, pady=2, sticky=tk.NS)
                 
                 # Balance
-                tk.Label(row_frame, text=balance_formatted, width=15, anchor="w").grid(row=0, column=5, padx=2, pady=5, sticky=tk.W)
+                tk.Label(row_frame, text=balance_formatted, width=15, anchor="w").grid(row=0, column=10, padx=2, pady=5, sticky=tk.W)
+                separator5 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator5.grid(row=0, column=11, padx=0, pady=2, sticky=tk.NS)
                 
                 # Cargo
-                tk.Label(row_frame, text=cargo_text, width=20, anchor="w").grid(row=0, column=6, padx=2, pady=5, sticky=tk.W)
+                tk.Label(row_frame, text=cargo_text, width=20, anchor="w").grid(row=0, column=12, padx=2, pady=5, sticky=tk.W)
+                separator6 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator6.grid(row=0, column=13, padx=0, pady=2, sticky=tk.NS)
                 
                 # State
-                tk.Label(row_frame, text=state, width=15, anchor="w").grid(row=0, column=7, padx=2, pady=5, sticky=tk.W)
+                tk.Label(row_frame, text=state, width=15, anchor="w").grid(row=0, column=14, padx=2, pady=5, sticky=tk.W)
+                separator7 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator7.grid(row=0, column=15, padx=0, pady=2, sticky=tk.NS)
                 
                 # Theme
-                tk.Label(row_frame, text=theme, width=15, anchor="w").grid(row=0, column=8, padx=2, pady=5, sticky=tk.W)
+                tk.Label(row_frame, text=theme, width=15, anchor="w").grid(row=0, column=16, padx=2, pady=5, sticky=tk.W)
+                separator8 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator8.grid(row=0, column=17, padx=0, pady=2, sticky=tk.NS)
                 
                 # Icy Rings (read-only checkbox)
                 icy_rings_value = icy_rings.lower() == 'yes' if icy_rings else False
                 icy_rings_var = tk.BooleanVar(value=icy_rings_value)
                 icy_rings_cb = tk.Checkbutton(row_frame, variable=icy_rings_var, state=tk.DISABLED, text="", width=12, anchor="w")
-                icy_rings_cb.grid(row=0, column=9, padx=2, pady=5, sticky=tk.W)
+                icy_rings_cb.grid(row=0, column=18, padx=2, pady=5, sticky=tk.W)
+                separator9 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator9.grid(row=0, column=19, padx=0, pady=2, sticky=tk.NS)
                 
                 # Pristine (read-only checkbox)
                 pristine_value = pristine.lower() == 'yes' if pristine else False
                 pristine_var = tk.BooleanVar(value=pristine_value)
                 pristine_cb = tk.Checkbutton(row_frame, variable=pristine_var, state=tk.DISABLED, text="", width=12, anchor="w")
-                pristine_cb.grid(row=0, column=10, padx=2, pady=5, sticky=tk.W)
+                pristine_cb.grid(row=0, column=20, padx=2, pady=5, sticky=tk.W)
+                separator10 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator10.grid(row=0, column=21, padx=0, pady=2, sticky=tk.NS)
                 
                 # Docking Access (read-only checkbox)
                 docking_access_value = docking_access.lower() in ['yes', 'all', 'friends', 'squadron'] if docking_access else False
                 docking_access_var = tk.BooleanVar(value=docking_access_value)
                 docking_access_cb = tk.Checkbutton(row_frame, variable=docking_access_var, state=tk.DISABLED, text="", width=15, anchor="w")
-                docking_access_cb.grid(row=0, column=11, padx=2, pady=5, sticky=tk.W)
+                docking_access_cb.grid(row=0, column=22, padx=2, pady=5, sticky=tk.W)
+                separator11 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator11.grid(row=0, column=23, padx=0, pady=2, sticky=tk.NS)
                 
                 # Notorious Access (read-only checkbox)
                 notorious_access_value = notorious_access.lower() in ['true', 'yes', '1'] if isinstance(notorious_access, str) else bool(notorious_access) if notorious_access else False
                 notorious_access_var = tk.BooleanVar(value=notorious_access_value)
                 notorious_access_cb = tk.Checkbutton(row_frame, variable=notorious_access_var, state=tk.DISABLED, text="", width=18, anchor="w")
-                notorious_access_cb.grid(row=0, column=12, padx=2, pady=5, sticky=tk.W)
+                notorious_access_cb.grid(row=0, column=24, padx=2, pady=5, sticky=tk.W)
+                separator12 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator12.grid(row=0, column=25, padx=0, pady=2, sticky=tk.NS)
                 
                 # Last Updated
-                tk.Label(row_frame, text=last_updated, width=20, anchor="w").grid(row=0, column=13, padx=2, pady=5, sticky=tk.W)
+                tk.Label(row_frame, text=last_updated, width=20, anchor="w").grid(row=0, column=26, padx=2, pady=5, sticky=tk.W)
             
             # Finalize window setup after all widgets are created
             canvas.update_idletasks()
             canvas.configure(scrollregion=canvas.bbox("all"))
             
+            # Calculate actual content width after widgets are created
+            scrollable_frame.update_idletasks()
+            actual_content_width = scrollable_frame.winfo_reqwidth()
+            # Use the larger of calculated width or actual content width
+            final_width = max(window_width, actual_content_width + 50)  # Add padding
+            # Still respect screen bounds
+            screen_width = details_window.winfo_screenwidth()
+            final_width = min(final_width, screen_width - 20)
+            final_width = max(final_width, 800)  # Minimum 800px
+            
             # Set window size
-            details_window.geometry(f"{window_width}x600")
-            details_window.minsize(400, 400)  # Minimum size
+            details_window.geometry(f"{final_width}x600")
+            details_window.minsize(800, 400)  # Minimum size to show content
             
             # Close button (outside scrollable area)
             close_btn_frame = tk.Frame(details_window, bg="white")
@@ -2286,6 +2554,8 @@ class SpanshRouter():
                 # No carrier available, uncheck both
                 self.fleet_carrier_icy_rings_var.set(False)
                 self.fleet_carrier_pristine_var.set(False)
+                self._draw_icy_rings_toggle()
+                self._draw_pristine_toggle()
                 return
             
             carrier_system = carrier.get('current_system', '').strip()
@@ -2293,6 +2563,8 @@ class SpanshRouter():
                 # No system available, uncheck both
                 self.fleet_carrier_icy_rings_var.set(False)
                 self.fleet_carrier_pristine_var.set(False)
+                self._draw_icy_rings_toggle()
+                self._draw_pristine_toggle()
                 return
             
             # First, check if we have stored data in CSV
@@ -2362,15 +2634,21 @@ class SpanshRouter():
                     has_icy_rings = False
                     has_pristine = False
             
-            # Update checkboxes (from CSV data or API query result)
+            # Update toggle buttons (from CSV data or API query result)
             self.fleet_carrier_icy_rings_var.set(has_icy_rings)
             self.fleet_carrier_pristine_var.set(has_pristine)
+            # Redraw the toggle buttons
+            self._draw_icy_rings_toggle()
+            self._draw_pristine_toggle()
                 
         except Exception:
             logger.warning('!! Error updating fleet carrier rings status: ' + traceback.format_exc(), exc_info=False)
             # On error, uncheck both
             self.fleet_carrier_icy_rings_var.set(False)
             self.fleet_carrier_pristine_var.set(False)
+            # Redraw the toggle buttons
+            self._draw_icy_rings_toggle()
+            self._draw_pristine_toggle()
     
     def update_fleet_carrier_tritium_display(self):
         """
@@ -2616,17 +2894,29 @@ class SpanshRouter():
             column_widths = [4] + [max(15, len(h)) for h in display_columns]
             
             # Calculate required width based on columns (after column_widths is defined)
-            # Estimate width: column_widths * 10 (approximate pixels per character) + padding
-            total_column_width = sum(column_widths) * 10 + 150  # Add padding for buttons/scrollbars
+            # More accurate estimate: column_widths * 8-10 pixels per character + padding + separators
+            # Account for separators (one between each column, ~2px each)
+            num_separators = len(headers) - 1
+            separator_width = num_separators * 2
+            # Use 9 pixels per character width for more accurate sizing
+            total_column_width = sum(column_widths) * 9 + separator_width + 200  # Add padding for buttons/scrollbars/margins
             screen_width = route_window.winfo_screenwidth()
-            window_width = min(total_column_width, screen_width - 50)  # Leave 50px margin from screen edges
+            # Open window wide enough to show all columns, but don't exceed screen width
+            # If content is wider than screen, user can scroll horizontally
+            window_width = min(total_column_width, screen_width - 20)  # Leave small margin from screen edges
+            # Ensure minimum width so content isn't cut off
+            window_width = max(window_width, 800)  # At least 800px wide
             
             for i, header in enumerate(headers):
                 width = column_widths[i] if i < len(column_widths) else 20
                 # Cap width at reasonable maximum
                 width = min(width, 30) if i > 0 else width
                 label = tk.Label(header_frame, text=header, font=("Arial", 9, "bold"), bg="lightgray", width=width)
-                label.grid(row=0, column=i, padx=2, pady=5, sticky=tk.W)
+                label.grid(row=0, column=i*2, padx=2, pady=5, sticky=tk.W)
+                # Add vertical separator after each column (except the last)
+                if i < len(headers) - 1:
+                    separator = ttk.Separator(header_frame, orient=tk.VERTICAL)
+                    separator.grid(row=0, column=i*2+1, padx=0, pady=2, sticky=tk.NS)
             
             # Route rows
             for idx, route_entry in enumerate(route_data):
@@ -2636,11 +2926,14 @@ class SpanshRouter():
                 col_idx = 0
                 
                 # Step number
-                tk.Label(row_frame, text=str(idx + 1), width=4, anchor="w").grid(row=0, column=col_idx, padx=2, pady=5, sticky=tk.W)
+                tk.Label(row_frame, text=str(idx + 1), width=4, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                # Add separator after step number
+                separator_step = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                separator_step.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
                 # Display each column
-                for field_name in display_columns:
+                for field_idx, field_name in enumerate(display_columns):
                     field_lower = field_name.lower()
                     value = route_entry.get(field_lower, '').strip() if isinstance(route_entry.get(field_lower, ''), str) else str(route_entry.get(field_lower, ''))
                     
@@ -2652,28 +2945,28 @@ class SpanshRouter():
                             if current_system and current_system.lower() == prev_system_name:
                                 # System name repeats, show empty
                                 system_label = tk.Label(row_frame, text="", width=30, anchor="w")
-                                system_label.grid(row=0, column=col_idx, padx=2, pady=5, sticky=tk.W)
+                                system_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                             else:
                                 # New system name, display it
                                 if current_system:
                                     system_label = tk.Label(row_frame, text=current_system, fg="blue", cursor="hand2", width=30, anchor="w")
-                                    system_label.grid(row=0, column=col_idx, padx=2, pady=5, sticky=tk.W)
+                                    system_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                                     system_label.bind("<Button-1>", lambda e, s=current_system: self.open_inara_system(s))
                                     system_label.bind("<Enter>", lambda e, lbl=system_label: lbl.config(fg="darkblue", underline=True))
                                     system_label.bind("<Leave>", lambda e, lbl=system_label: lbl.config(fg="blue", underline=False))
                                 else:
-                                    tk.Label(row_frame, text="", width=30, anchor="w").grid(row=0, column=col_idx, padx=2, pady=5, sticky=tk.W)
+                                    tk.Label(row_frame, text="", width=30, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                             prev_system_name = current_system.lower() if current_system else None
                         else:
                             # Normal system name display (clickable to Inara)
                             if value:
                                 system_label = tk.Label(row_frame, text=value, fg="blue", cursor="hand2", width=30, anchor="w")
-                                system_label.grid(row=0, column=col_idx, padx=2, pady=5, sticky=tk.W)
+                                system_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                                 system_label.bind("<Button-1>", lambda e, s=value: self.open_inara_system(s))
                                 system_label.bind("<Enter>", lambda e, lbl=system_label: lbl.config(fg="darkblue", underline=True))
                                 system_label.bind("<Leave>", lambda e, lbl=system_label: lbl.config(fg="blue", underline=False))
                             else:
-                                tk.Label(row_frame, text="", width=30, anchor="w").grid(row=0, column=col_idx, padx=2, pady=5, sticky=tk.W)
+                                tk.Label(row_frame, text="", width=30, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                     
                     # Checkbox columns (yes/no fields)
                     elif field_lower in checkbox_columns:
@@ -2681,12 +2974,17 @@ class SpanshRouter():
                         checkbox_var = tk.BooleanVar(value=(checkbox_value == 'yes'))
                         checkbox_text = field_name  # Use original field name for display
                         checkbox_cb = tk.Checkbutton(row_frame, variable=checkbox_var, state=tk.DISABLED, text=checkbox_text, width=15, anchor="w")
-                        checkbox_cb.grid(row=0, column=col_idx, padx=2, pady=5, sticky=tk.W)
+                        checkbox_cb.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                     
                     # Regular text columns
                     else:
                         width = min(max(15, len(field_name)), 25)
-                        tk.Label(row_frame, text=value if value else "", width=width, anchor="w").grid(row=0, column=col_idx, padx=2, pady=5, sticky=tk.W)
+                        tk.Label(row_frame, text=value if value else "", width=width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                    
+                    # Add separator after each column (except the last)
+                    if field_idx < len(display_columns) - 1:
+                        separator = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                        separator.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                     
                     col_idx += 1
             
@@ -2694,9 +2992,19 @@ class SpanshRouter():
             canvas.update_idletasks()
             canvas.configure(scrollregion=canvas.bbox("all"))
             
+            # Calculate actual content width after widgets are created
+            scrollable_frame.update_idletasks()
+            actual_content_width = scrollable_frame.winfo_reqwidth()
+            # Use the larger of calculated width or actual content width
+            final_width = max(window_width, actual_content_width + 50)  # Add padding
+            # Still respect screen bounds
+            screen_width = route_window.winfo_screenwidth()
+            final_width = min(final_width, screen_width - 20)
+            final_width = max(final_width, 800)  # Minimum 800px
+            
             # Set window size
-            route_window.geometry(f"{window_width}x700")
-            route_window.minsize(400, 400)  # Minimum size
+            route_window.geometry(f"{final_width}x700")
+            route_window.minsize(800, 400)  # Minimum size to show content
             
             # Close button (outside scrollable area)
             close_btn_frame = tk.Frame(route_window, bg="white")
