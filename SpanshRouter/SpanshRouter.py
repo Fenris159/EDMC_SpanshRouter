@@ -201,20 +201,20 @@ class SpanshRouter():
                 self.frame, 
                 textvariable=self.fleet_carrier_var,
                 state="readonly",
-                width=40
+                width=25
             )
             self.fleet_carrier_combobox.bind("<<ComboboxSelected>>", self.on_carrier_selected)
             self.fleet_carrier_details_btn = tk.Button(
                 self.frame, 
                 text="View All", 
                 command=self.show_carrier_details_window,
-                width=8
+                width=7
             )
             self.fleet_carrier_inara_btn = tk.Button(
                 self.frame,
                 text="Inara",
                 command=self.open_selected_carrier_inara,
-                width=8,
+                width=6,
                 fg="blue",
                 cursor="hand2",
                 state=tk.DISABLED
@@ -272,10 +272,10 @@ class SpanshRouter():
             )
             self.fleet_carrier_balance_label = tk.Label(self.frame, text="Balance:", foreground="gray")
 
-            # Route info
-            self.waypoint_prev_btn = tk.Button(self.frame, text="^", command=self.goto_prev_waypoint)
-            self.waypoint_btn = tk.Button(self.frame, text=self.next_wp_label + '\n' + self.next_stop, command=self.copy_waypoint)
-            self.waypoint_next_btn = tk.Button(self.frame, text="v", command=self.goto_next_waypoint)
+            # Route info - make waypoint button more compact
+            self.waypoint_prev_btn = tk.Button(self.frame, text="^", command=self.goto_prev_waypoint, width=3)
+            self.waypoint_btn = tk.Button(self.frame, text=self.next_wp_label + '\n' + self.next_stop, command=self.copy_waypoint, width=20)
+            self.waypoint_next_btn = tk.Button(self.frame, text="v", command=self.goto_next_waypoint, width=3)
             self.jumpcounttxt_lbl = tk.Label(self.frame, text=self.jumpcountlbl_txt + str(self.jumps_left))
             self.dist_prev_lbl = tk.Label(self.frame, text="")
             self.dist_next_lbl = tk.Label(self.frame, text="")
@@ -290,7 +290,7 @@ class SpanshRouter():
             # Plotting GUI
             self.source_ac = AutoCompleter(self.frame, "Source System", width=30)
             self.dest_ac = AutoCompleter(self.frame, "Destination System", width=30)
-            self.range_entry = PlaceHolder(self.frame, "Range (LY)", width=10)
+            self.range_entry = PlaceHolder(self.frame, "Range (LY)", width=8)
             # Supercharge toggle button - circular radio-button style that toggles like a checkbox
             # Create a frame to hold the toggle button and label
             supercharge_frame = tk.Frame(self.frame, bg=self.frame.cget('bg'))
@@ -332,94 +332,94 @@ class SpanshRouter():
 
             self.efficiency_slider = tk.Scale(self.frame, from_=1, to=100, orient=tk.HORIZONTAL, label="Efficiency (%)")
             self.efficiency_slider.set(60)
-            self.plot_gui_btn = tk.Button(self.frame, text="Plot route", command=self.show_plot_gui)
-            self.plot_route_btn = tk.Button(self.frame, text="Calculate", command=self.plot_route)
-            self.cancel_plot = tk.Button(self.frame, text="Cancel", command=lambda: self.show_plot_gui(False))
+            self.plot_gui_btn = tk.Button(self.frame, text="Plot route", command=self.show_plot_gui, width=10)
+            self.plot_route_btn = tk.Button(self.frame, text="Calculate", command=self.plot_route, width=10)
+            self.cancel_plot = tk.Button(self.frame, text="Cancel", command=lambda: self.show_plot_gui(False), width=10)
 
-            self.csv_route_btn = tk.Button(self.frame, text="Import file", command=self.plot_file)
-            self.view_route_btn = tk.Button(self.frame, text="View Route", command=self.show_route_window)
-            self.export_route_btn = tk.Button(self.frame, text="Export for TCE", command=self.export_route)
-            self.clear_route_btn = tk.Button(self.frame, text="Clear route", command=self.clear_route)
+            self.csv_route_btn = tk.Button(self.frame, text="Import file", command=self.plot_file, width=10)
+            self.view_route_btn = tk.Button(self.frame, text="View Route", command=self.show_route_window, width=10)
+            self.export_route_btn = tk.Button(self.frame, text="Export for TCE", command=self.export_route, width=12)
+            self.clear_route_btn = tk.Button(self.frame, text="Clear route", command=self.clear_route, width=10)
 
             row = 0
             # Fleet carrier status at the top
             # Store grid positions to prevent accidental repositioning
-            self.fleet_carrier_status_label.grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
-            self.fleet_carrier_combobox.grid(row=row, column=1, padx=5, pady=2, sticky=tk.W)
+            self.fleet_carrier_status_label.grid(row=row, column=0, padx=2, pady=2, sticky=tk.W)
+            self.fleet_carrier_combobox.grid(row=row, column=1, padx=2, pady=2, sticky=tk.W)
             self.fleet_carrier_details_btn.grid(row=row, column=2, padx=2, pady=2, sticky=tk.W)
-            self.fleet_carrier_inara_btn.grid(row=row, column=3, padx=2, pady=2, sticky=tk.W)
+            self.fleet_carrier_inara_btn.grid(row=row, column=2, padx=(0, 2), pady=2, sticky=tk.E)
             # Store grid info to prevent repositioning
             self._fleet_carrier_row_start = row
             self.update_fleet_carrier_dropdown()
             row += 1
             # Fleet carrier system location
-            self.fleet_carrier_system_label.grid(row=row, column=0, columnspan=2, padx=5, pady=2, sticky=tk.W)
+            self.fleet_carrier_system_label.grid(row=row, column=0, columnspan=3, padx=2, pady=2, sticky=tk.W)
             self.update_fleet_carrier_system_display()
             row += 1
-            # Fleet carrier Icy Rings and Pristine status
+            # Fleet carrier Icy Rings and Pristine status - compact them together
             # Note: icy_rings_cb and pristine_cb are frames containing canvas and label, so grid the frames
-            self.fleet_carrier_icy_rings_cb.grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
-            self.fleet_carrier_pristine_cb.grid(row=row, column=1, padx=5, pady=2, sticky=tk.W)
+            self.fleet_carrier_icy_rings_cb.grid(row=row, column=0, padx=2, pady=2, sticky=tk.W)
+            self.fleet_carrier_pristine_cb.grid(row=row, column=0, padx=(60, 2), pady=2, sticky=tk.W)
             self.update_fleet_carrier_rings_status()
             row += 1
             # Fleet carrier Tritium display (clickable to search Inara)
-            self.fleet_carrier_tritium_label.grid(row=row, column=0, columnspan=2, padx=5, pady=2, sticky=tk.W)
+            self.fleet_carrier_tritium_label.grid(row=row, column=0, columnspan=3, padx=2, pady=2, sticky=tk.W)
             self.fleet_carrier_tritium_label.bind("<Button-1>", lambda e: self.find_tritium_near_current_system())
             self.fleet_carrier_tritium_label.bind("<Enter>", lambda e, lbl=self.fleet_carrier_tritium_label: lbl.config(fg="darkblue", underline=True))
             self.fleet_carrier_tritium_label.bind("<Leave>", lambda e, lbl=self.fleet_carrier_tritium_label: lbl.config(fg="blue", underline=False))
             self.update_fleet_carrier_tritium_display()
             row += 1
             # Fleet carrier Balance display
-            self.fleet_carrier_balance_label.grid(row=row, column=0, columnspan=2, padx=5, pady=2, sticky=tk.W)
+            self.fleet_carrier_balance_label.grid(row=row, column=0, columnspan=3, padx=2, pady=2, sticky=tk.W)
             self.update_fleet_carrier_balance_display()
             row += 1
             # Separator line
             self.fleet_carrier_separator = tk.Frame(self.frame, height=1, bg="gray")
-            self.fleet_carrier_separator.grid(row=row, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=2)
+            self.fleet_carrier_separator.grid(row=row, column=0, columnspan=3, sticky=tk.EW, padx=2, pady=2)
             self._fleet_carrier_row_end = row  # Store end row for fleet carrier section
             row += 1
-            # Route waypoint controls
-            self.waypoint_prev_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
-            self.dist_remaining_lbl.grid(row=row, column=2, padx=5, pady=10, sticky=tk.W)
+            # Route waypoint controls - compact layout: buttons centered, distances to the right but closer
+            self.waypoint_prev_btn.grid(row=row, column=0, padx=2, pady=5, sticky=tk.W)
+            self.dist_remaining_lbl.grid(row=row, column=0, padx=(50, 2), pady=5, sticky=tk.W)
             row += 1
-            self.waypoint_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
-            self.dist_prev_lbl.grid(row=row, column=2, padx=5, pady=10, sticky=tk.W)
+            self.waypoint_btn.grid(row=row, column=0, padx=2, pady=5, sticky=tk.W)
+            self.dist_prev_lbl.grid(row=row, column=0, padx=(50, 2), pady=5, sticky=tk.W)
             row += 1
-            self.waypoint_next_btn.grid(row=row, column=0, columnspan=2, padx=5, pady=10)
-            self.dist_next_lbl.grid(row=row, column=2, padx=5, pady=10, sticky=tk.W)
+            self.waypoint_next_btn.grid(row=row, column=0, padx=2, pady=5, sticky=tk.W)
+            self.dist_next_lbl.grid(row=row, column=0, padx=(50, 2), pady=5, sticky=tk.W)
             row += 1
-            self.fuel_used_lbl.grid(row=row, column=2, padx=5, pady=2, sticky=tk.W)
+            self.fuel_used_lbl.grid(row=row, column=0, padx=(50, 2), pady=2, sticky=tk.W)
             row += 1
-            self.bodies_lbl.grid(row=row, columnspan=2, sticky=tk.W)
+            self.bodies_lbl.grid(row=row, columnspan=3, padx=2, sticky=tk.W)
             row += 1
-            self.fleetrestock_lbl.grid(row=row, column=0, sticky=tk.W)
-            self.find_trit_btn.grid(row=row, column=1, padx=5, sticky=tk.W)
+            self.fleetrestock_lbl.grid(row=row, column=0, padx=2, sticky=tk.W)
+            self.find_trit_btn.grid(row=row, column=0, padx=(120, 2), pady=2, sticky=tk.W)
             row += 1
-            self.refuel_lbl.grid(row=row,columnspan=2, sticky=tk.W)
+            self.refuel_lbl.grid(row=row, columnspan=3, padx=2, sticky=tk.W)
             row += 1
-            self.source_ac.grid(row=row,columnspan=2, pady=(10,0)) # The AutoCompleter takes two rows to show the list when needed, so we skip one
+            self.source_ac.grid(row=row, columnspan=3, padx=2, pady=(5,0)) # The AutoCompleter takes two rows to show the list when needed, so we skip one
             row += 2
-            self.dest_ac.grid(row=row,columnspan=2, pady=(10,0))
+            self.dest_ac.grid(row=row, columnspan=3, padx=2, pady=(5,0))
             row += 2
-            self.range_entry.grid(row=row, column=0, pady=10, sticky=tk.W)
-            self.supercharge_cb.grid(row=row, column=1, padx=10, pady=10, sticky=tk.W)
+            self.range_entry.grid(row=row, column=0, padx=2, pady=5, sticky=tk.W)
+            self.supercharge_cb.grid(row=row, column=0, padx=(80, 2), pady=5, sticky=tk.W)
             row += 1
-            self.efficiency_slider.grid(row=row, pady=10, columnspan=2, sticky=tk.EW)
+            self.efficiency_slider.grid(row=row, padx=2, pady=5, columnspan=3, sticky=tk.EW)
             row += 1
-            # Basic controls - always visible, positioned in sequential columns
-            self.csv_route_btn.grid(row=row, column=0, pady=10, padx=0)
-            self.view_route_btn.grid(row=row, column=1, pady=10, padx=0)
-            self.plot_gui_btn.grid(row=row, column=2, pady=10, padx=0)
+            # Basic controls - always visible, compact horizontal layout
+            self.csv_route_btn.grid(row=row, column=0, padx=2, pady=5, sticky=tk.W)
+            self.view_route_btn.grid(row=row, column=0, padx=(65, 2), pady=5, sticky=tk.W)
+            self.plot_gui_btn.grid(row=row, column=0, padx=(130, 2), pady=5, sticky=tk.W)
             # Plotting controls - shown/hidden based on state
-            self.plot_route_btn.grid(row=row, column=0, pady=10, padx=0)
-            self.cancel_plot.grid(row=row, column=1, pady=10, padx=5, sticky=tk.E)
+            self.plot_route_btn.grid(row=row, column=0, padx=2, pady=5, sticky=tk.W)
+            self.cancel_plot.grid(row=row, column=0, padx=(65, 2), pady=5, sticky=tk.W)
             row += 1
-            self.export_route_btn.grid(row=row, pady=10, padx=0)
-            self.clear_route_btn.grid(row=row, column=1, pady=10, padx=5, sticky=tk.W)
+            self.export_route_btn.grid(row=row, column=0, padx=2, pady=5, sticky=tk.W)
+            self.clear_route_btn.grid(row=row, column=0, padx=(65, 2), pady=5, sticky=tk.W)
             row += 1
-            self.jumpcounttxt_lbl.grid(row=row, pady=5, sticky=tk.W)
+            self.jumpcounttxt_lbl.grid(row=row, padx=2, pady=5, sticky=tk.W)
             row += 1
-            self.error_lbl.grid(row=row, columnspan=2)
+            self.error_lbl.grid(row=row, columnspan=3, padx=2)
             self.error_lbl.grid_remove()
             row += 1
 
@@ -696,6 +696,7 @@ class SpanshRouter():
                 self.dist_remaining_lbl["text"] = self.dist_remaining
                 # Update fuel used display (only if CSV has this column)
                 if self.has_fuel_used and self.fuel_used:
+                    # fuel_used is already rounded and formatted as string from compute_distances()
                     self.fuel_used_lbl["text"] = f"Fuel Used: {self.fuel_used}"
                     self.fuel_used_lbl.grid()
                 else:
@@ -963,7 +964,14 @@ class SpanshRouter():
                         fuel_used_value = nxt[2] if nxt[2] else None
                 
                 if fuel_used_value and fuel_used_value.strip():
-                    self.fuel_used = fuel_used_value.strip()
+                    # Round Fuel Used UP to nearest hundredth (2 decimal places) like distances
+                    try:
+                        val = float(fuel_used_value.strip())
+                        rounded_val = math.ceil(val * 100) / 100
+                        self.fuel_used = f"{rounded_val:.2f}"
+                    except (ValueError, TypeError):
+                        # If not a number, use as-is
+                        self.fuel_used = fuel_used_value.strip()
                 else:
                     self.fuel_used = ""
         else:
@@ -1341,9 +1349,18 @@ class SpanshRouter():
                             dist_remaining,
                             get_field(row, self.restocktritium_header, "")
                         ]
-                        # Store Fuel Used if present
+                        # Store Fuel Used if present (round UP to nearest hundredth)
                         if self.has_fuel_used:
-                            route_entry.append(get_field(row, 'Fuel Used', ''))
+                            fuel_used_raw = get_field(row, 'Fuel Used', '')
+                            if fuel_used_raw:
+                                try:
+                                    val = float(fuel_used_raw)
+                                    rounded_val = math.ceil(val * 100) / 100
+                                    route_entry.append(f"{rounded_val:.2f}")
+                                except (ValueError, TypeError):
+                                    route_entry.append(fuel_used_raw)
+                            else:
+                                route_entry.append('')
                         # Store Icy Ring and Pristine if present (for route view window)
                         if has_field('Icy Ring'):
                             route_entry.append(get_field(row, 'Icy Ring', ''))
@@ -1371,9 +1388,18 @@ class SpanshRouter():
                             route_row.append(dist_to_arrival)
                             route_row.append(dist_remaining)
                         
-                        # Store Fuel Used if present (typically after Fuel Left)
+                        # Store Fuel Used if present (round UP to nearest hundredth)
                         if self.has_fuel_used:
-                            route_row.append(get_field(row, 'Fuel Used', ''))
+                            fuel_used_raw = get_field(row, 'Fuel Used', '')
+                            if fuel_used_raw:
+                                try:
+                                    val = float(fuel_used_raw)
+                                    rounded_val = math.ceil(val * 100) / 100
+                                    route_row.append(f"{rounded_val:.2f}")
+                                except (ValueError, TypeError):
+                                    route_row.append(fuel_used_raw)
+                            else:
+                                route_row.append('')
 
                         self.route.append(route_row)
                         self.jumps_left += 1
@@ -1394,9 +1420,18 @@ class SpanshRouter():
                         jumps = get_field(row, self.jumps_header, "")
                         route_entry = [system, jumps]
                         
-                        # Add Fuel Used if present (before Icy Ring/Pristine to maintain consistent order)
+                        # Add Fuel Used if present (round UP to nearest hundredth)
                         if self.has_fuel_used:
-                            route_entry.append(get_field(row, 'Fuel Used', ''))
+                            fuel_used_raw = get_field(row, 'Fuel Used', '')
+                            if fuel_used_raw:
+                                try:
+                                    val = float(fuel_used_raw)
+                                    rounded_val = math.ceil(val * 100) / 100
+                                    route_entry.append(f"{rounded_val:.2f}")
+                                except (ValueError, TypeError):
+                                    route_entry.append(fuel_used_raw)
+                            else:
+                                route_entry.append('')
                         
                         # Add Icy Ring and Pristine if present
                         if has_icy_ring_in_file:
@@ -1613,7 +1648,7 @@ class SpanshRouter():
                 for row in route_txt:
                     if row not in (None, "", []):
                         if row.lstrip().startswith('==='):
-                            jumps = int(re.findall("\d+ jump", row)[0].rstrip(' jumps'))
+                            jumps = int(re.findall(r"\d+ jump", row)[0].rstrip(' jumps'))
                             self.jumps_left += jumps
 
                             system = row[row.find('>') + 1:]
@@ -2211,31 +2246,39 @@ class SpanshRouter():
                 else:
                     tritium_text = fuel
                 
+                # Use the same column indexing pattern as headers (i*2 for labels, i*2+1 for separators)
+                # Use column_widths array to ensure alignment with headers
+                col_idx = 0
+                
                 # Select button - updates dropdown to select this carrier
                 select_btn = tk.Button(
                     row_frame,
                     text="Select",
                     command=lambda c=callsign: self.select_carrier_from_details(c, details_window),
-                    width=8,
+                    width=column_widths[col_idx],
                     relief=tk.RAISED
                 )
-                select_btn.grid(row=0, column=0, padx=2, pady=5, sticky=tk.W)
+                select_btn.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 # Add separator after Select column
-                separator0 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                separator0.grid(row=0, column=1, padx=0, pady=2, sticky=tk.NS)
+                if col_idx < len(headers) - 1:
+                    separator0 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                    separator0.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                col_idx += 1
                 
                 # Highlight if this is the currently selected carrier
                 if callsign == self.selected_carrier_callsign:
                     select_btn.config(bg="lightgreen", text="Selected")
                 
                 # Callsign (clickable to Inara)
-                callsign_label = tk.Label(row_frame, text=callsign, fg="blue", cursor="hand2", width=12, anchor="w")
-                callsign_label.grid(row=0, column=2, padx=2, pady=5, sticky=tk.W)
+                callsign_label = tk.Label(row_frame, text=callsign, fg="blue", cursor="hand2", width=column_widths[col_idx], anchor="w")
+                callsign_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 callsign_label.bind("<Button-1>", lambda e, c=callsign: self.open_inara_carrier(c))
                 callsign_label.bind("<Enter>", lambda e, lbl=callsign_label: lbl.config(fg="darkblue", underline=True))
                 callsign_label.bind("<Leave>", lambda e, lbl=callsign_label: lbl.config(fg="blue", underline=False))
-                separator1 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                separator1.grid(row=0, column=3, padx=0, pady=2, sticky=tk.NS)
+                if col_idx < len(headers) - 1:
+                    separator1 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                    separator1.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                col_idx += 1
                 
                 # Name (clickable to Inara)
                 name_label = tk.Label(row_frame, text=name, fg="blue", cursor="hand2", width=20, anchor="w")
@@ -2271,49 +2314,61 @@ class SpanshRouter():
                 separator6.grid(row=0, column=13, padx=0, pady=2, sticky=tk.NS)
                 
                 # State
-                tk.Label(row_frame, text=state, width=15, anchor="w").grid(row=0, column=14, padx=2, pady=5, sticky=tk.W)
-                separator7 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                separator7.grid(row=0, column=15, padx=0, pady=2, sticky=tk.NS)
+                tk.Label(row_frame, text=state, width=column_widths[col_idx], anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                if col_idx < len(headers) - 1:
+                    separator7 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                    separator7.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                col_idx += 1
                 
                 # Theme
-                tk.Label(row_frame, text=theme, width=15, anchor="w").grid(row=0, column=16, padx=2, pady=5, sticky=tk.W)
-                separator8 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                separator8.grid(row=0, column=17, padx=0, pady=2, sticky=tk.NS)
+                tk.Label(row_frame, text=theme, width=column_widths[col_idx], anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                if col_idx < len(headers) - 1:
+                    separator8 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                    separator8.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                col_idx += 1
                 
                 # Icy Rings (read-only checkbox)
                 icy_rings_value = icy_rings.lower() == 'yes' if icy_rings else False
                 icy_rings_var = tk.BooleanVar(value=icy_rings_value)
-                icy_rings_cb = tk.Checkbutton(row_frame, variable=icy_rings_var, state=tk.DISABLED, text="", width=12, anchor="w")
-                icy_rings_cb.grid(row=0, column=18, padx=2, pady=5, sticky=tk.W)
-                separator9 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                separator9.grid(row=0, column=19, padx=0, pady=2, sticky=tk.NS)
+                icy_rings_cb = tk.Checkbutton(row_frame, variable=icy_rings_var, state=tk.DISABLED, text="", width=column_widths[col_idx], anchor="w")
+                icy_rings_cb.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                if col_idx < len(headers) - 1:
+                    separator9 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                    separator9.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                col_idx += 1
                 
                 # Pristine (read-only checkbox)
                 pristine_value = pristine.lower() == 'yes' if pristine else False
                 pristine_var = tk.BooleanVar(value=pristine_value)
-                pristine_cb = tk.Checkbutton(row_frame, variable=pristine_var, state=tk.DISABLED, text="", width=12, anchor="w")
-                pristine_cb.grid(row=0, column=20, padx=2, pady=5, sticky=tk.W)
-                separator10 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                separator10.grid(row=0, column=21, padx=0, pady=2, sticky=tk.NS)
+                pristine_cb = tk.Checkbutton(row_frame, variable=pristine_var, state=tk.DISABLED, text="", width=column_widths[col_idx], anchor="w")
+                pristine_cb.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                if col_idx < len(headers) - 1:
+                    separator10 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                    separator10.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                col_idx += 1
                 
                 # Docking Access (read-only checkbox)
                 docking_access_value = docking_access.lower() in ['yes', 'all', 'friends', 'squadron'] if docking_access else False
                 docking_access_var = tk.BooleanVar(value=docking_access_value)
-                docking_access_cb = tk.Checkbutton(row_frame, variable=docking_access_var, state=tk.DISABLED, text="", width=15, anchor="w")
-                docking_access_cb.grid(row=0, column=22, padx=2, pady=5, sticky=tk.W)
-                separator11 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                separator11.grid(row=0, column=23, padx=0, pady=2, sticky=tk.NS)
+                docking_access_cb = tk.Checkbutton(row_frame, variable=docking_access_var, state=tk.DISABLED, text="", width=column_widths[col_idx], anchor="w")
+                docking_access_cb.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                if col_idx < len(headers) - 1:
+                    separator11 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                    separator11.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                col_idx += 1
                 
                 # Notorious Access (read-only checkbox)
                 notorious_access_value = notorious_access.lower() in ['true', 'yes', '1'] if isinstance(notorious_access, str) else bool(notorious_access) if notorious_access else False
                 notorious_access_var = tk.BooleanVar(value=notorious_access_value)
-                notorious_access_cb = tk.Checkbutton(row_frame, variable=notorious_access_var, state=tk.DISABLED, text="", width=18, anchor="w")
-                notorious_access_cb.grid(row=0, column=24, padx=2, pady=5, sticky=tk.W)
-                separator12 = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                separator12.grid(row=0, column=25, padx=0, pady=2, sticky=tk.NS)
+                notorious_access_cb = tk.Checkbutton(row_frame, variable=notorious_access_var, state=tk.DISABLED, text="", width=column_widths[col_idx], anchor="w")
+                notorious_access_cb.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                if col_idx < len(headers) - 1:
+                    separator12 = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                    separator12.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                col_idx += 1
                 
                 # Last Updated
-                tk.Label(row_frame, text=last_updated, width=20, anchor="w").grid(row=0, column=26, padx=2, pady=5, sticky=tk.W)
+                tk.Label(row_frame, text=last_updated, width=column_widths[col_idx], anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
             
             # Finalize window setup after all widgets are created
             canvas.update_idletasks()
@@ -2934,17 +2989,22 @@ class SpanshRouter():
                 
                 col_idx = 0
                 
-                # Step number
-                tk.Label(row_frame, text=str(idx + 1), width=4, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                # Step number - use column_widths[0] to match header width
+                step_width = column_widths[0] if col_idx < len(column_widths) else 4
+                tk.Label(row_frame, text=str(idx + 1), width=step_width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 # Add separator after step number
-                separator_step = ttk.Separator(row_frame, orient=tk.VERTICAL)
-                separator_step.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
+                if col_idx < len(headers) - 1:
+                    separator_step = ttk.Separator(row_frame, orient=tk.VERTICAL)
+                    separator_step.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                 col_idx += 1
                 
-                # Display each column
+                # Display each column - use column_widths to match header widths
                 for field_idx, field_name in enumerate(display_columns):
                     field_lower = field_name.lower()
                     value = route_entry.get(field_lower, '').strip() if isinstance(route_entry.get(field_lower, ''), str) else str(route_entry.get(field_lower, ''))
+                    
+                    # Get width from column_widths array (offset by 1 because step number is first)
+                    col_width = column_widths[col_idx] if col_idx < len(column_widths) else max(15, len(field_name))
                     
                     # Special handling for System Name
                     if field_lower == self.system_header.lower():
@@ -2953,45 +3013,44 @@ class SpanshRouter():
                             current_system = value
                             if current_system and current_system.lower() == prev_system_name:
                                 # System name repeats, show empty
-                                system_label = tk.Label(row_frame, text="", width=30, anchor="w")
+                                system_label = tk.Label(row_frame, text="", width=col_width, anchor="w")
                                 system_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                             else:
                                 # New system name, display it
                                 if current_system:
-                                    system_label = tk.Label(row_frame, text=current_system, fg="blue", cursor="hand2", width=30, anchor="w")
+                                    system_label = tk.Label(row_frame, text=current_system, fg="blue", cursor="hand2", width=col_width, anchor="w")
                                     system_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                                     system_label.bind("<Button-1>", lambda e, s=current_system: self.open_inara_system(s))
                                     system_label.bind("<Enter>", lambda e, lbl=system_label: lbl.config(fg="darkblue", underline=True))
                                     system_label.bind("<Leave>", lambda e, lbl=system_label: lbl.config(fg="blue", underline=False))
                                 else:
-                                    tk.Label(row_frame, text="", width=30, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                                    tk.Label(row_frame, text="", width=col_width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                             prev_system_name = current_system.lower() if current_system else None
                         else:
                             # Normal system name display (clickable to Inara)
                             if value:
-                                system_label = tk.Label(row_frame, text=value, fg="blue", cursor="hand2", width=30, anchor="w")
+                                system_label = tk.Label(row_frame, text=value, fg="blue", cursor="hand2", width=col_width, anchor="w")
                                 system_label.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                                 system_label.bind("<Button-1>", lambda e, s=value: self.open_inara_system(s))
                                 system_label.bind("<Enter>", lambda e, lbl=system_label: lbl.config(fg="darkblue", underline=True))
                                 system_label.bind("<Leave>", lambda e, lbl=system_label: lbl.config(fg="blue", underline=False))
                             else:
-                                tk.Label(row_frame, text="", width=30, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                                tk.Label(row_frame, text="", width=col_width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                     
                     # Checkbox columns (yes/no fields)
                     elif field_lower in checkbox_columns:
                         checkbox_value = value.lower()
                         checkbox_var = tk.BooleanVar(value=(checkbox_value == 'yes'))
                         checkbox_text = field_name  # Use original field name for display
-                        checkbox_cb = tk.Checkbutton(row_frame, variable=checkbox_var, state=tk.DISABLED, text=checkbox_text, width=15, anchor="w")
+                        checkbox_cb = tk.Checkbutton(row_frame, variable=checkbox_var, state=tk.DISABLED, text=checkbox_text, width=col_width, anchor="w")
                         checkbox_cb.grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                     
                     # Regular text columns
                     else:
-                        width = min(max(15, len(field_name)), 25)
-                        tk.Label(row_frame, text=value if value else "", width=width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
+                        tk.Label(row_frame, text=value if value else "", width=col_width, anchor="w").grid(row=0, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                     
                     # Add separator after each column (except the last)
-                    if field_idx < len(display_columns) - 1:
+                    if col_idx < len(headers) - 1:
                         separator = ttk.Separator(row_frame, orient=tk.VERTICAL)
                         separator.grid(row=0, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
                     
