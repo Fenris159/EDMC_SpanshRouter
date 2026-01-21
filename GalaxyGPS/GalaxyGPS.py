@@ -2509,6 +2509,11 @@ class GalaxyGPS():
         Open a window displaying all fleet carriers with details and Inara.cz links.
         """
         try:
+            # #region agent log
+            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
+                import json
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"GalaxyGPS.py:2507","message":"show_carrier_details_window entry","data":{"func":"show_carrier_details_window"},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            # #endregion
             carriers = self.get_all_fleet_carriers()
             if not carriers:
                 confirmDialog.showinfo("Fleet Carriers", "No fleet carrier data available.")
@@ -2517,8 +2522,18 @@ class GalaxyGPS():
             # Create new window
             details_window = tk.Toplevel(self.parent)
             details_window.title("Fleet Carrier Details")
+            # #region agent log
+            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
+                import json
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"GalaxyGPS.py:2519","message":"details_window created, before theme.update","data":{"window_exists":hasattr(details_window,'winfo_exists')},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            # #endregion
             # Apply EDMC theme to the window
             theme.update(details_window)
+            # #region agent log
+            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
+                import json
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"GalaxyGPS.py:2522","message":"theme.update called on details_window","data":{},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            # #endregion
             
             # Define headers and column widths first - add EDSM button before System
             headers = ["Select", "Callsign", "Name", "EDSM", "System", "Tritium", "Balance", "Cargo", "State", "Theme", "Icy Rings", "Pristine", "Docking Access", "Notorious Access", "Last Updated"]
@@ -2741,13 +2756,23 @@ class GalaxyGPS():
             
             # Carrier data rows (rows 1+) - use same grid as header for perfect alignment
             # Get background color from theme for alternating rows
+            # Helper to safely get bg kwargs - only include bg if row_bg is a valid color string
+            def get_bg_kwargs(bg_color):
+                """Return kwargs dict with bg key only if bg_color is a valid non-empty string."""
+                return {"bg": bg_color} if bg_color and isinstance(bg_color, str) and bg_color.strip() else {}
+            
             try:
                 base_bg = table_frame.cget('bg')
                 # Use slightly lighter shade for alternating rows if possible
                 # Otherwise theme will handle it
-                row_bg = base_bg
+                row_bg = base_bg if base_bg else None  # None is OK, we'll conditionally use it
             except:
-                row_bg = None
+                row_bg = None  # None is OK, we'll conditionally use it
+            # #region agent log
+            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
+                import json
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"GalaxyGPS.py:2750","message":"row_bg value determined","data":{"row_bg":str(row_bg),"row_bg_is_none":row_bg is None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            # #endregion
             for idx, carrier in enumerate(sorted(carriers, key=lambda x: x.get('last_updated', ''), reverse=True)):
                 data_row = idx + 1  # Start from row 1 (row 0 is header)
                 
@@ -2838,14 +2863,22 @@ class GalaxyGPS():
                 col_idx = 0
                 
                 # Select button - updates dropdown to select this carrier
-                select_btn = tk.Button(
-                    table_frame,
-                    text="Select",
-                    command=lambda c=callsign: self.select_carrier_from_details(c, details_window),
-                    width=column_widths[col_idx],
-                    relief=tk.RAISED,
-                    bg=row_bg
-                )
+                # #region agent log
+                with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
+                    import json
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"GalaxyGPS.py:2836","message":"before creating select_btn","data":{"row_bg":str(row_bg),"idx":idx},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                # #endregion
+                # Create button kwargs, only include bg if row_bg is valid (not empty string)
+                btn_kwargs = {
+                    "master": table_frame,
+                    "text": "Select",
+                    "command": lambda c=callsign: self.select_carrier_from_details(c, details_window),
+                    "width": column_widths[col_idx],
+                    "relief": tk.RAISED
+                }
+                if row_bg:  # Only add bg if row_bg is not empty
+                    btn_kwargs["bg"] = row_bg
+                select_btn = tk.Button(**btn_kwargs)
                 select_btn.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 # Add separator after Select column
                 if col_idx < len(headers) - 1:
@@ -3050,7 +3083,12 @@ class GalaxyGPS():
             # Apply theme to all widgets in the window recursively
             theme.update(details_window)
             
-        except Exception:
+        except Exception as e:
+            # #region agent log
+            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
+                import json
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"GalaxyGPS.py:3033","message":"Exception in show_carrier_details_window","data":{"exception_type":type(e).__name__,"exception_msg":str(e),"traceback":traceback.format_exc()[:500]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            # #endregion
             logger.warning('!! Error showing carrier details window: ' + traceback.format_exc(), exc_info=False)
             confirmDialog.showerror("Error", "Failed to display carrier details.")
     
@@ -3636,6 +3674,11 @@ class GalaxyGPS():
         Highlights the current next waypoint row.
         """
         try:
+            # #region agent log
+            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
+                import json
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"GalaxyGPS.py:3610","message":"show_route_window entry","data":{"func":"show_route_window","route_len":len(self.route) if self.route else 0},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            # #endregion
             if not self.route or len(self.route) == 0:
                 confirmDialog.showinfo("View Route", "No route is currently loaded.")
                 return
@@ -3787,8 +3830,18 @@ class GalaxyGPS():
             # Create new window
             route_window = tk.Toplevel(self.parent)
             route_window.title("Route View")
+            # #region agent log
+            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
+                import json
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"GalaxyGPS.py:3767","message":"route_window created, before theme.update","data":{"window_exists":hasattr(route_window,'winfo_exists')},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            # #endregion
             # Apply EDMC theme to the window
             theme.update(route_window)
+            # #region agent log
+            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
+                import json
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"GalaxyGPS.py:3770","message":"theme.update called on route_window","data":{},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            # #endregion
             
             # Store reference to this window for dynamic updates
             self.route_window_ref = route_window
@@ -4000,7 +4053,7 @@ class GalaxyGPS():
                 # Highlight current waypoint with a different color
                 try:
                     base_bg = table_frame.cget('bg')
-                    row_bg = base_bg
+                    row_bg = base_bg if base_bg else ""  # Ensure not None
                     if is_current_waypoint:
                         # Keep highlight color for current waypoint even with theme
                         row_bg = "#fff9c4"  # Light yellow highlight for current waypoint
@@ -4008,7 +4061,12 @@ class GalaxyGPS():
                     if is_current_waypoint:
                         row_bg = "#fff9c4"
                     else:
-                        row_bg = None
+                        row_bg = ""  # Empty string allows theme to handle it, None would cause errors
+                # #region agent log
+                with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
+                    import json
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"GalaxyGPS.py:3973","message":"row_bg value determined for route window","data":{"row_bg":str(row_bg),"row_bg_is_none":row_bg is None,"idx":idx},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                # #endregion
                 
                 col_idx = 0
                 
@@ -4199,7 +4257,12 @@ class GalaxyGPS():
             # Apply theme to all widgets in the window recursively
             theme.update(route_window)
             
-        except Exception:
+        except Exception as e:
+            # #region agent log
+            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
+                import json
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"GalaxyGPS.py:4163","message":"Exception in show_route_window","data":{"exception_type":type(e).__name__,"exception_msg":str(e),"traceback":traceback.format_exc()[:500]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+            # #endregion
             logger.warning('!! Error showing route window: ' + traceback.format_exc(), exc_info=False)
             confirmDialog.showerror("Error", "Failed to display route.")
     
