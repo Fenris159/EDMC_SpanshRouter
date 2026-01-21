@@ -4134,6 +4134,9 @@ class GalaxyGPS():
                 step_label = tk.Label(**label_kwargs)
                 step_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                 theme.update(step_label)
+                # For highlighted rows, set text to black for readability (except URLs which stay blue)
+                if is_current_waypoint:
+                    step_label.config(foreground="black")
                 # Add separator after step number
                 if col_idx < len(headers) - 1:
                     separator_step = ttk.Separator(table_frame, orient=tk.VERTICAL)
@@ -4182,6 +4185,9 @@ class GalaxyGPS():
                             empty_label = tk.Label(**label_kwargs)
                             empty_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                             theme.update(empty_label)
+                            # For highlighted rows, set text to black for readability
+                            if is_current_waypoint:
+                                empty_label.config(foreground="black")
                         if col_idx < len(headers) - 1:
                             separator_edsm = ttk.Separator(table_frame, orient=tk.VERTICAL)
                             separator_edsm.grid(row=data_row, column=col_idx*2+1, padx=0, pady=2, sticky=tk.NS)
@@ -4205,6 +4211,9 @@ class GalaxyGPS():
                                 system_label = tk.Label(**label_kwargs)
                                 system_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                                 theme.update(system_label)
+                                # For highlighted rows, set text to black for readability
+                                if is_current_waypoint:
+                                    system_label.config(foreground="black")
                             else:
                                 # New system name, display it
                                 if current_system:
@@ -4214,6 +4223,7 @@ class GalaxyGPS():
                                     system_label = tk.Label(**label_kwargs)
                                     system_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                                     theme.update(system_label)
+                                    # System names are URLs/links with fg="blue" - keep them blue, don't change to black
                                     system_label.bind("<Button-1>", lambda e, s=current_system: self.open_inara_system(s))
                                     system_label.bind("<Enter>", lambda e, lbl=system_label: lbl.config(fg="darkblue", underline=True))
                                     system_label.bind("<Leave>", lambda e, lbl=system_label: lbl.config(fg="blue", underline=False))
@@ -4224,6 +4234,9 @@ class GalaxyGPS():
                                     empty_label = tk.Label(**label_kwargs)
                                     empty_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                                     theme.update(empty_label)
+                                    # For highlighted rows, set text to black for readability
+                                    if is_current_waypoint:
+                                        empty_label.config(foreground="black")
                             prev_system_name = current_system.lower() if current_system else None
                         else:
                             # Normal system name display (clickable to Inara)
@@ -4234,6 +4247,7 @@ class GalaxyGPS():
                                 system_label = tk.Label(**label_kwargs)
                                 system_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                                 theme.update(system_label)
+                                # System names are URLs/links with fg="blue" - keep them blue, don't change to black
                                 system_label.bind("<Button-1>", lambda e, s=value: self.open_inara_system(s))
                                 system_label.bind("<Enter>", lambda e, lbl=system_label: lbl.config(fg="darkblue", underline=True))
                                 system_label.bind("<Leave>", lambda e, lbl=system_label: lbl.config(fg="blue", underline=False))
@@ -4244,6 +4258,9 @@ class GalaxyGPS():
                                 empty_label = tk.Label(**label_kwargs)
                                 empty_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=tk.W)
                                 theme.update(empty_label)
+                                # For highlighted rows, set text to black for readability
+                                if is_current_waypoint:
+                                    empty_label.config(foreground="black")
                         
                         # Add separator after System Name and move to next column
                         if col_idx < len(headers) - 1:
@@ -4326,6 +4343,15 @@ class GalaxyGPS():
                         value_label = tk.Label(**label_kwargs)
                         value_label.grid(row=data_row, column=col_idx*2, padx=2, pady=5, sticky=sticky)
                         theme.update(value_label)
+                        # For highlighted rows, set text to black for readability (except URLs which stay blue)
+                        if is_current_waypoint:
+                            # Don't change foreground if it's a URL/link (blue color)
+                            try:
+                                current_fg = value_label.cget('foreground')
+                                if current_fg and current_fg.lower() not in ['blue', '#0000ff', '#0000ff']:
+                                    value_label.config(foreground="black")
+                            except:
+                                value_label.config(foreground="black")
                     
                     # Add separator after each column (except the last)
                     if col_idx < len(headers) - 1:
