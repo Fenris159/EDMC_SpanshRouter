@@ -2509,11 +2509,6 @@ class GalaxyGPS():
         Open a window displaying all fleet carriers with details and Inara.cz links.
         """
         try:
-            # #region agent log
-            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
-                import json
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"GalaxyGPS.py:2507","message":"show_carrier_details_window entry","data":{"func":"show_carrier_details_window"},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-            # #endregion
             carriers = self.get_all_fleet_carriers()
             if not carriers:
                 confirmDialog.showinfo("Fleet Carriers", "No fleet carrier data available.")
@@ -2704,6 +2699,8 @@ class GalaxyGPS():
             table_frame = tk.Frame(scrollable_frame)
             table_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
             theme.update(table_frame)
+            # Force update to ensure theme colors are applied before reading background
+            table_frame.update_idletasks()
             
             # Determine which columns should be right-aligned (numeric columns)
             numeric_columns_fleet = set()
@@ -2743,19 +2740,16 @@ class GalaxyGPS():
                     separator.grid(row=header_row, column=i*2+1, padx=0, pady=2, sticky=tk.NS)
             
             # Carrier data rows (rows 1+) - use same grid as header for perfect alignment
-            # Get background color from theme for alternating rows
+            # Get background color from theme AFTER theme.update() has been applied
+            # Force another update to ensure colors are applied
+            table_frame.update_idletasks()
             try:
                 base_bg = table_frame.cget('bg')
-                # Use slightly lighter shade for alternating rows if possible
-                # Otherwise theme will handle it
-                row_bg = base_bg if base_bg else ""  # Empty string allows theme to handle it
+                # Use theme background color, not hardcoded white
+                # Empty string means let theme handle it completely
+                row_bg = base_bg if base_bg and base_bg.lower() not in ['white', '#ffffff', 'systemwindow'] else ""
             except:
                 row_bg = ""  # Empty string allows theme to handle it
-            # #region agent log
-            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
-                import json
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"GalaxyGPS.py:2750","message":"row_bg value determined","data":{"row_bg":str(row_bg),"row_bg_is_none":row_bg is None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-            # #endregion
             for idx, carrier in enumerate(sorted(carriers, key=lambda x: x.get('last_updated', ''), reverse=True)):
                 data_row = idx + 1  # Start from row 1 (row 0 is header)
                 
@@ -2845,12 +2839,6 @@ class GalaxyGPS():
                 # Use column_widths array to ensure alignment with headers
                 col_idx = 0
                 
-                # Select button - updates dropdown to select this carrier
-                # #region agent log
-                with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
-                    import json
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"GalaxyGPS.py:2836","message":"before creating select_btn","data":{"row_bg":str(row_bg),"idx":idx},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-                # #endregion
                 # Select button - updates dropdown to select this carrier
                 # Only set bg if row_bg is a valid non-empty string
                 select_btn = tk.Button(
@@ -3066,12 +3054,7 @@ class GalaxyGPS():
             # theme.update() will recursively apply to all child widgets
             theme.update(main_frame)
             
-        except Exception as e:
-            # #region agent log
-            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
-                import json
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"GalaxyGPS.py:3033","message":"Exception in show_carrier_details_window","data":{"exception_type":type(e).__name__,"exception_msg":str(e),"traceback":traceback.format_exc()[:500]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-            # #endregion
+        except Exception:
             logger.warning('!! Error showing carrier details window: ' + traceback.format_exc(), exc_info=False)
             confirmDialog.showerror("Error", "Failed to display carrier details.")
     
@@ -3657,11 +3640,6 @@ class GalaxyGPS():
         Highlights the current next waypoint row.
         """
         try:
-            # #region agent log
-            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
-                import json
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"GalaxyGPS.py:3610","message":"show_route_window entry","data":{"func":"show_route_window","route_len":len(self.route) if self.route else 0},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-            # #endregion
             if not self.route or len(self.route) == 0:
                 confirmDialog.showinfo("View Route", "No route is currently loaded.")
                 return
@@ -3826,8 +3804,9 @@ class GalaxyGPS():
             route_window.protocol("WM_DELETE_WINDOW", on_window_close)
             
             # Create main container with horizontal and vertical scrolling
-            main_frame = tk.Frame(route_window, bg="white")
+            main_frame = tk.Frame(route_window)
             main_frame.pack(fill=tk.BOTH, expand=True)
+            theme.update(main_frame)
             
             # Create horizontal scrollbar
             h_scrollbar = ttk.Scrollbar(main_frame, orient=tk.HORIZONTAL)
@@ -3874,8 +3853,11 @@ class GalaxyGPS():
             canvas.bind('<Configure>', on_canvas_configure)
             
             # Create a single table frame that will contain both header and data rows in one grid
-            table_frame = tk.Frame(scrollable_frame, bg="white")
+            table_frame = tk.Frame(scrollable_frame)
             table_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            theme.update(table_frame)
+            # Force update to ensure theme colors are applied before reading background
+            table_frame.update_idletasks()
             
             # Add step number as first column, and EDSM button before System Name
             # Check if System Name is in display_columns and insert EDSM before it
@@ -4020,11 +4002,13 @@ class GalaxyGPS():
                     if system_name_in_row.lower() == current_next_waypoint.lower():
                         is_current_waypoint = True
                 
-                # Get row background color from theme
+                # Get row background color from theme AFTER theme.update() has been applied
                 # Highlight current waypoint with a different color
                 try:
                     base_bg = table_frame.cget('bg')
-                    row_bg = base_bg if base_bg else ""  # Empty string allows theme to handle it
+                    # Use theme background color, not hardcoded white
+                    # Empty string means let theme handle it completely
+                    row_bg = base_bg if base_bg and base_bg.lower() not in ['white', '#ffffff', 'systemwindow'] else ""
                     if is_current_waypoint:
                         # Keep highlight color for current waypoint even with theme
                         row_bg = "#fff9c4"  # Light yellow highlight for current waypoint
@@ -4033,11 +4017,6 @@ class GalaxyGPS():
                         row_bg = "#fff9c4"
                     else:
                         row_bg = ""  # Empty string allows theme to handle it
-                # #region agent log
-                with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
-                    import json
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"GalaxyGPS.py:3973","message":"row_bg value determined for route window","data":{"row_bg":str(row_bg),"row_bg_is_none":row_bg is None,"idx":idx},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-                # #endregion
                 
                 col_idx = 0
                 
@@ -4229,12 +4208,7 @@ class GalaxyGPS():
             # theme.update() will recursively apply to all child widgets
             theme.update(main_frame)
             
-        except Exception as e:
-            # #region agent log
-            with open(r'c:\Users\Drew\Cursur Projects\EDMC_GalaxyGPS\.cursor\debug.log', 'a') as f:
-                import json
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"GalaxyGPS.py:4163","message":"Exception in show_route_window","data":{"exception_type":type(e).__name__,"exception_msg":str(e),"traceback":traceback.format_exc()[:500]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-            # #endregion
+        except Exception:
             logger.warning('!! Error showing route window: ' + traceback.format_exc(), exc_info=False)
             confirmDialog.showerror("Error", "Failed to display route.")
     
