@@ -1,13 +1,18 @@
-# EDMC_SpanshRouter
+# EDMC_GalaxyGPS
 ## Note on norohind's fork
-This is fork where I updated and evolved SpanshRouter
-plugin for public use with the latest version of EDMarketConnector. 
+This is fork where I updated and evolved from SpanshRouter, all credit to norohind for being my inspiration to build this plugin for public use with the latest version of EDMarketConnector. 
 
-I have greatly expanded it's functionality and corrected some issues for operating Fleet Carriers
+Being inspired by the original program's intent I have greatly expanded it's functionality and brought it up to date with the latest version of Python supported by EDSM, corrected some csv issues and expanded it for maintaining and managing the operating Fleet Carriers. The result was a very robust plugin built on entirely new code which will not only allow you to navigate quickly from SPANSH CSV routes for your ship but also allow you to keep track of your place on the route and see additional information on the fly like road to riches values and system lookups. When plotting Fleet Carrier CSV files it automatically changes tracking methods to help you manage your carrier routes remotely, advancing to the next system waypoint based on your CAPI data and in addition includes lots of quality of life features for quickly looking up various information and keeping track of Tritium levels.
 
-This plugin's purpose is to automatically copy to your clipboard the next waypoint on a route you planned using [Spansh](https://www.spansh.co.uk/plotter).
+Since most of this code is now foreign to SpanshRouter which served as more of an inspiration than an implimentation I have renamed the plugin to GalaxyGPS which is more in line with what this plugin does. It's like a GPS, but in space!
 
-It also allows you to keep track of your place on the route and see additional information on the fly like road to riches values and system lookups. You can also keep track of your fleet carriers and their current status. 
+**See the instructions below to learn how the program works and how to make compatible CSV files.**
+
+## Version Information
+
+**Current Version: 1.0.0**
+
+With the rename from SpanshRouter to GalaxyGPS and the significant code evolution, the version numbering has been reset to start fresh at **1.0.0**. This represents the first official release under the GalaxyGPS name, marking a new chapter for this plugin.
 
 ## Install
 
@@ -27,15 +32,15 @@ It also allows you to keep track of your place on the route and see additional i
    - Click the **"Open"** button to open your plugins directory
 
 2. **Download the Latest Release** (Recommended):
-   - Visit the [Latest Release Page](https://github.com/Fenris159/EDMC_SpanshRouter/releases/latest)
+   - Visit the [Latest Release Page](https://github.com/Fenris159/EDMC_GalaxyGPS/releases/latest)
    - Download the **Source code (zip)** file from the latest release
-   - **Important**: Always use releases from this repository (`Fenris159/EDMC_SpanshRouter`) - older releases from other repositories are outdated and incompatible
+   - **Important**: Always use releases from this repository (`Fenris159/EDMC_GalaxyGPS`) - older releases from other repositories are outdated and incompatible
 
 3. **Extract and Install**:
    - Extract the downloaded ZIP file
-   - Create a folder named **`EDMC_SpanshRouter`** (or any name you prefer) inside your EDMC plugins directory
+   - Create a folder named **`EDMC_GalaxyGPS`** (or any name you prefer) inside your EDMC plugins directory
    - Copy all extracted files and folders into this new folder
-   - Ensure the folder structure looks like: `plugins/EDMC_SpanshRouter/SpanshRouter/`, `plugins/EDMC_SpanshRouter/load.py`, etc.
+   - Ensure the folder structure looks like: `plugins/EDMC_GalaxyGPS/GalaxyGPS/`, `plugins/EDMC_GalaxyGPS/load.py`, etc.
 
 4. **Restart EDMC**:
    - Close and restart EDMarketConnector
@@ -55,14 +60,14 @@ If you're using a Wayland desktop environment, **xclip** won't work for clipboar
    - Arch Linux: `sudo pacman -S wl-clipboard`
 
 2. **Set Environment Variable**:
-   - Before launching EDMC, set the `EDMC_SPANSH_ROUTER_XCLIP` environment variable:
+   - Before launching EDMC, set the `EDMC_GALAXYGPS_XCLIP` environment variable:
    ```bash
-   export EDMC_SPANSH_ROUTER_XCLIP="/usr/bin/wl-copy"
+   export EDMC_GALAXYGPS_XCLIP="/usr/bin/wl-copy"
    python EDMarketConnector.py
    ```
    - Or add it to your shell profile (`.bashrc`, `.zshrc`, etc.) to make it permanent:
    ```bash
-   echo 'export EDMC_SPANSH_ROUTER_XCLIP="/usr/bin/wl-copy"' >> ~/.bashrc
+   echo 'export EDMC_GALAXYGPS_XCLIP="/usr/bin/wl-copy"' >> ~/.bashrc
    ```
 
 #### Flatpak Users
@@ -82,7 +87,7 @@ If you're running EDMarketConnector as a Flatpak application, you need to grant 
    - Scroll down to **"Filesystem"** section, enable:
      - **All system libraries, executables and static data** (`filesystem=host-os`)
    - Scroll to **"Environment"** section, click **"+"** to add a new variable:
-     - **Name**: `EDMC_SPANSH_ROUTER_XCLIP`
+     - **Name**: `EDMC_GALAXYGPS_XCLIP`
      - **Value**: `/run/host/usr/bin/wl-copy`
    - Close Flatseal
 
@@ -98,7 +103,7 @@ Run this command to configure all required permissions and environment variables
 flatpak override --user io.edcd.EDMarketConnector \
   --socket=wayland \
   --filesystem=host-os \
-  --env=EDMC_SPANSH_ROUTER_XCLIP=/run/host/usr/bin/wl-copy
+  --env=EDMC_GALAXYGPS_XCLIP=/run/host/usr/bin/wl-copy
 ```
 
 Then restart EDMarketConnector normally through your application launcher.
@@ -321,13 +326,13 @@ The plugin now automatically tracks your fleet carrier(s) using Frontier's CAPI 
 - **Access programmatically**: You can retrieve carrier information using the plugin's API:
   ```python
   # Get a specific carrier
-  carrier = spansh_router.get_fleet_carrier("A1A-A1A")
+  carrier = galaxy_gps.get_fleet_carrier("A1A-A1A")
   
   # Get all carriers
-  all_carriers = spansh_router.get_all_fleet_carriers()
+  all_carriers = galaxy_gps.get_all_fleet_carriers()
   
   # Find carriers in a specific system
-  carriers_in_system = spansh_router.get_fleet_carriers_in_system("Sol")
+  carriers_in_system = galaxy_gps.get_fleet_carriers_in_system("Sol")
   ```
 
 The CSV file format includes columns: Callsign, Name, Current System, System Address, Fuel (Tritium), Balance, State, Theme, Docking Access, Notorious Access, Cargo Count, Cargo Total Value, Last Updated, and Source Galaxy.
@@ -345,7 +350,7 @@ The plugin features an **automatic update system** that checks for new versions 
 
 ### How Auto-Updates Work
 
-1. **Automatic Check**: When EDMC starts, the plugin automatically checks the GitHub repository (`Fenris159/EDMC_SpanshRouter`) for new versions by comparing the local `version.json` with the remote version.
+1. **Automatic Check**: When EDMC starts, the plugin automatically checks the GitHub repository (`Fenris159/EDMC_GalaxyGPS`) for new versions by comparing the local `version.json` with the remote version.
 
 2. **Update Notification**: If a new version is available, a dialog will appear showing:
    - The new version number
@@ -358,7 +363,7 @@ The plugin features an **automatic update system** that checks for new versions 
    - You'll need to restart EDMC for the update to take effect
 
 4. **Manual Updates**: If you prefer to update manually, you can:
-   - Download the latest release from the [GitHub repository](https://github.com/Fenris159/EDMC_SpanshRouter/releases)
+   - Download the latest release from the [GitHub repository](https://github.com/Fenris159/EDMC_GalaxyGPS/releases)
    - Extract and replace the plugin files in your EDMC plugins folder
    - Restart EDMC
 

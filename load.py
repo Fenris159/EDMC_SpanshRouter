@@ -4,17 +4,17 @@ import tkinter.messagebox as confirmDialog
 
 from companion import SERVER_LIVE, SERVER_LEGACY, SERVER_BETA  # type: ignore
 
-# Import SpanshRouter class - this must work regardless of plugin folder name
+# Import GalaxyGPS class - this must work regardless of plugin folder name
 try:
-    from SpanshRouter.SpanshRouter import SpanshRouter
+    from GalaxyGPS.GalaxyGPS import GalaxyGPS
 except ImportError as e:
     # If import fails, try to add the plugin directory to sys.path
     plugin_dir = os.path.dirname(os.path.abspath(__file__))
     if plugin_dir not in sys.path:
         sys.path.insert(0, plugin_dir)
-    from SpanshRouter.SpanshRouter import SpanshRouter
+    from GalaxyGPS.GalaxyGPS import GalaxyGPS
 
-spansh_router = None
+galaxy_gps = None
 
 
 def plugin_start3(plugin_dir):
@@ -22,31 +22,31 @@ def plugin_start3(plugin_dir):
 
 
 def plugin_start(plugin_dir):
-    global spansh_router
-    spansh_router = SpanshRouter(plugin_dir)
-    spansh_router.check_for_update()
-    return 'SpanshRouter'
+    global galaxy_gps
+    galaxy_gps = GalaxyGPS(plugin_dir)
+    galaxy_gps.check_for_update()
+    return 'GalaxyGPS'
 
 
 def plugin_stop():
-    global spansh_router
-    spansh_router.save_route()
+    global galaxy_gps
+    galaxy_gps.save_route()
 
-    if spansh_router.update_available:
-        spansh_router.install_update()
+    if galaxy_gps.update_available:
+        galaxy_gps.install_update()
 
 
 def journal_entry(cmdr, is_beta, system, station, entry, state):
-    global spansh_router
+    global galaxy_gps
     if (entry['event'] in ['FSDJump', 'Location', 'SupercruiseEntry', 'SupercruiseExit']
-            and entry["StarSystem"].lower() == spansh_router.next_stop.lower()):
-        spansh_router.update_route()
-        spansh_router.set_source_ac(entry["StarSystem"])
-    elif entry['event'] == 'FSSDiscoveryScan' and entry['SystemName'] == spansh_router.next_stop:
-        spansh_router.update_route()
+            and entry["StarSystem"].lower() == galaxy_gps.next_stop.lower()):
+        galaxy_gps.update_route()
+        galaxy_gps.set_source_ac(entry["StarSystem"])
+    elif entry['event'] == 'FSSDiscoveryScan' and entry['SystemName'] == galaxy_gps.next_stop:
+        galaxy_gps.update_route()
     
     # Update fleet carrier data from journal events (fallback to CAPI)
-    if spansh_router and spansh_router.fleet_carrier_manager:
+    if galaxy_gps and galaxy_gps.fleet_carrier_manager:
         # Determine source galaxy from state or default to Live
         source_galaxy = 'Live'
         if hasattr(state, 'get'):
@@ -65,43 +65,43 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
         
         if event_name in ['CarrierJump', 'CarrierDepositFuel', 'CarrierStats']:
             # Always update for carrier-specific events
-            updated = spansh_router.fleet_carrier_manager.update_carrier_from_journal(
+            updated = galaxy_gps.fleet_carrier_manager.update_carrier_from_journal(
                 event_name, entry, state, source_galaxy
             )
             
                 # Update GUI if carrier was updated
             if updated:
-                if hasattr(spansh_router, 'update_fleet_carrier_dropdown'):
-                    spansh_router.update_fleet_carrier_dropdown()
-                if hasattr(spansh_router, 'update_fleet_carrier_system_display'):
-                    spansh_router.update_fleet_carrier_system_display()
-                if hasattr(spansh_router, 'update_fleet_carrier_rings_status'):
-                    spansh_router.update_fleet_carrier_rings_status()
-                if hasattr(spansh_router, 'update_fleet_carrier_tritium_display'):
-                    spansh_router.update_fleet_carrier_tritium_display()
-                if hasattr(spansh_router, 'update_fleet_carrier_balance_display'):
-                    spansh_router.update_fleet_carrier_balance_display()
-                if hasattr(spansh_router, 'check_fleet_carrier_restock_warning'):
-                    spansh_router.check_fleet_carrier_restock_warning()
+                if hasattr(galaxy_gps, 'update_fleet_carrier_dropdown'):
+                    galaxy_gps.update_fleet_carrier_dropdown()
+                if hasattr(galaxy_gps, 'update_fleet_carrier_system_display'):
+                    galaxy_gps.update_fleet_carrier_system_display()
+                if hasattr(galaxy_gps, 'update_fleet_carrier_rings_status'):
+                    galaxy_gps.update_fleet_carrier_rings_status()
+                if hasattr(galaxy_gps, 'update_fleet_carrier_tritium_display'):
+                    galaxy_gps.update_fleet_carrier_tritium_display()
+                if hasattr(galaxy_gps, 'update_fleet_carrier_balance_display'):
+                    galaxy_gps.update_fleet_carrier_balance_display()
+                if hasattr(galaxy_gps, 'check_fleet_carrier_restock_warning'):
+                    galaxy_gps.check_fleet_carrier_restock_warning()
         
         elif event_name == 'Cargo' and is_at_carrier:
             # Only update cargo if we're at a fleet carrier station
-            updated = spansh_router.fleet_carrier_manager.update_carrier_from_journal(
+            updated = galaxy_gps.fleet_carrier_manager.update_carrier_from_journal(
                 event_name, entry, state, source_galaxy
             )
             
             # Update GUI if carrier was updated
             if updated:
-                if hasattr(spansh_router, 'update_fleet_carrier_dropdown'):
-                    spansh_router.update_fleet_carrier_dropdown()
-                if hasattr(spansh_router, 'update_fleet_carrier_system_display'):
-                    spansh_router.update_fleet_carrier_system_display()
-                if hasattr(spansh_router, 'update_fleet_carrier_rings_status'):
-                    spansh_router.update_fleet_carrier_rings_status()
-                if hasattr(spansh_router, 'update_fleet_carrier_tritium_display'):
-                    spansh_router.update_fleet_carrier_tritium_display()
-                if hasattr(spansh_router, 'update_fleet_carrier_balance_display'):
-                    spansh_router.update_fleet_carrier_balance_display()
+                if hasattr(galaxy_gps, 'update_fleet_carrier_dropdown'):
+                    galaxy_gps.update_fleet_carrier_dropdown()
+                if hasattr(galaxy_gps, 'update_fleet_carrier_system_display'):
+                    galaxy_gps.update_fleet_carrier_system_display()
+                if hasattr(galaxy_gps, 'update_fleet_carrier_rings_status'):
+                    galaxy_gps.update_fleet_carrier_rings_status()
+                if hasattr(galaxy_gps, 'update_fleet_carrier_tritium_display'):
+                    galaxy_gps.update_fleet_carrier_tritium_display()
+                if hasattr(galaxy_gps, 'update_fleet_carrier_balance_display'):
+                    galaxy_gps.update_fleet_carrier_balance_display()
         
         elif event_name == 'Location' and is_at_carrier and entry.get('Docked'):
             # Location event when docked at carrier - update location if carrier moved
@@ -109,9 +109,9 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             new_system = entry.get('StarSystem', '')
             if new_system:
                 # Find carrier by station name pattern
-                callsign = spansh_router.fleet_carrier_manager.find_carrier_for_journal_event(entry, state)
+                callsign = galaxy_gps.fleet_carrier_manager.find_carrier_for_journal_event(entry, state)
                 if callsign:
-                    carrier = spansh_router.fleet_carrier_manager.get_carrier(callsign)
+                    carrier = galaxy_gps.fleet_carrier_manager.get_carrier(callsign)
                     if carrier and carrier.get('current_system', '').lower() != new_system.lower():
                         # Carrier location changed - update it
                         location_event_data = {
@@ -119,71 +119,71 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
                             'StarSystem': new_system,
                             'SystemAddress': str(entry.get('SystemAddress', ''))
                         }
-                        updated = spansh_router.fleet_carrier_manager.update_carrier_from_journal(
+                        updated = galaxy_gps.fleet_carrier_manager.update_carrier_from_journal(
                             'CarrierJump', location_event_data, state, source_galaxy
                         )
                         
                         # Update GUI if carrier location was updated
                         if updated:
-                            if hasattr(spansh_router, 'update_fleet_carrier_dropdown'):
-                                spansh_router.update_fleet_carrier_dropdown()
-                            if hasattr(spansh_router, 'update_fleet_carrier_system_display'):
-                                spansh_router.update_fleet_carrier_system_display()
-                            if hasattr(spansh_router, 'update_fleet_carrier_rings_status'):
-                                spansh_router.update_fleet_carrier_rings_status()
-                            if hasattr(spansh_router, 'update_fleet_carrier_tritium_display'):
-                                spansh_router.update_fleet_carrier_tritium_display()
-                            if hasattr(spansh_router, 'update_fleet_carrier_balance_display'):
-                                spansh_router.update_fleet_carrier_balance_display()
-                            if hasattr(spansh_router, 'check_fleet_carrier_restock_warning'):
-                                spansh_router.check_fleet_carrier_restock_warning()
+                            if hasattr(galaxy_gps, 'update_fleet_carrier_dropdown'):
+                                galaxy_gps.update_fleet_carrier_dropdown()
+                            if hasattr(galaxy_gps, 'update_fleet_carrier_system_display'):
+                                galaxy_gps.update_fleet_carrier_system_display()
+                            if hasattr(galaxy_gps, 'update_fleet_carrier_rings_status'):
+                                galaxy_gps.update_fleet_carrier_rings_status()
+                            if hasattr(galaxy_gps, 'update_fleet_carrier_tritium_display'):
+                                galaxy_gps.update_fleet_carrier_tritium_display()
+                            if hasattr(galaxy_gps, 'update_fleet_carrier_balance_display'):
+                                galaxy_gps.update_fleet_carrier_balance_display()
+                            if hasattr(galaxy_gps, 'check_fleet_carrier_restock_warning'):
+                                galaxy_gps.check_fleet_carrier_restock_warning()
 
 
 def ask_for_update():
-    global spansh_router
-    if spansh_router.update_available:
-        update_txt = "New Spansh Router update available!\n"
+    global galaxy_gps
+    if galaxy_gps.update_available:
+        update_txt = "New GalaxyGPS update available!\n"
         update_txt += "If you choose to install it, you will have to restart EDMC for it to take effect.\n\n"
-        update_txt += spansh_router.spansh_updater.changelogs
+        update_txt += galaxy_gps.spansh_updater.changelogs
         update_txt += "\n\nInstall?"
-        install_update = confirmDialog.askyesno("SpanshRouter", update_txt)
+        install_update = confirmDialog.askyesno("GalaxyGPS", update_txt)
 
         if install_update:
-            confirmDialog.showinfo("SpanshRouter", "The update will be installed as soon as you quit EDMC.")
+            confirmDialog.showinfo("GalaxyGPS", "The update will be installed as soon as you quit EDMC.")
         else:
-            spansh_router.update_available = False
+            galaxy_gps.update_available = False
 
 
 def plugin_app(parent):
-    global spansh_router
+    global galaxy_gps
     import logging
     import traceback
-    logger = logging.getLogger('EDMC_SpanshRouter')
+    logger = logging.getLogger('EDMC_GalaxyGPS')
     
     try:
-        frame = spansh_router.init_gui(parent)
+        frame = galaxy_gps.init_gui(parent)
         if not frame:
             logger.error("init_gui returned None - plugin will not display")
             return None
         
-        spansh_router.open_last_route()
+        galaxy_gps.open_last_route()
         # Update fleet carrier status display if carrier data exists
-        if hasattr(spansh_router, 'update_fleet_carrier_dropdown'):
-            spansh_router.update_fleet_carrier_dropdown()
-        if hasattr(spansh_router, 'update_fleet_carrier_system_display'):
-            spansh_router.update_fleet_carrier_system_display()
-        if hasattr(spansh_router, 'update_fleet_carrier_rings_status'):
-            spansh_router.update_fleet_carrier_rings_status()
-        if hasattr(spansh_router, 'update_fleet_carrier_tritium_display'):
-            spansh_router.update_fleet_carrier_tritium_display()
-        if hasattr(spansh_router, 'update_fleet_carrier_balance_display'):
-            spansh_router.update_fleet_carrier_balance_display()
+        if hasattr(galaxy_gps, 'update_fleet_carrier_dropdown'):
+            galaxy_gps.update_fleet_carrier_dropdown()
+        if hasattr(galaxy_gps, 'update_fleet_carrier_system_display'):
+            galaxy_gps.update_fleet_carrier_system_display()
+        if hasattr(galaxy_gps, 'update_fleet_carrier_rings_status'):
+            galaxy_gps.update_fleet_carrier_rings_status()
+        if hasattr(galaxy_gps, 'update_fleet_carrier_tritium_display'):
+            galaxy_gps.update_fleet_carrier_tritium_display()
+        if hasattr(galaxy_gps, 'update_fleet_carrier_balance_display'):
+            galaxy_gps.update_fleet_carrier_balance_display()
         parent.master.after_idle(ask_for_update)
         return frame
     except Exception as e:
         logger.error(f"Error in plugin_app: {traceback.format_exc()}")
         import tkinter.messagebox as confirmDialog
-        confirmDialog.showerror("SpanshRouter Error", f"Failed to initialize plugin:\n{str(e)}\n\nCheck EDMC log for details.")
+        confirmDialog.showerror("GalaxyGPS Error", f"Failed to initialize plugin:\n{str(e)}\n\nCheck EDMC log for details.")
         return None
 
 
@@ -194,8 +194,8 @@ def capi_fleetcarrier(data):
     Args:
         data: CAPIData object containing fleet carrier information
     """
-    global spansh_router
-    if spansh_router and spansh_router.fleet_carrier_manager:
+    global galaxy_gps
+    if galaxy_gps and galaxy_gps.fleet_carrier_manager:
         # Determine source galaxy
         source_galaxy = 'Unknown'
         if hasattr(data, 'source_host'):
@@ -207,28 +207,28 @@ def capi_fleetcarrier(data):
                 source_galaxy = 'Legacy'
         
         # Update carrier data
-        spansh_router.fleet_carrier_manager.update_carrier_from_capi(data, source_galaxy)
+        galaxy_gps.fleet_carrier_manager.update_carrier_from_capi(data, source_galaxy)
         
         # Update the status display in the GUI
-        if hasattr(spansh_router, 'update_fleet_carrier_dropdown'):
-            spansh_router.update_fleet_carrier_dropdown()
+        if hasattr(galaxy_gps, 'update_fleet_carrier_dropdown'):
+            galaxy_gps.update_fleet_carrier_dropdown()
         
         # Update fleet carrier system display
-        if hasattr(spansh_router, 'update_fleet_carrier_system_display'):
-            spansh_router.update_fleet_carrier_system_display()
+        if hasattr(galaxy_gps, 'update_fleet_carrier_system_display'):
+            galaxy_gps.update_fleet_carrier_system_display()
         
         # Update fleet carrier rings status (Icy Rings and Pristine)
-        if hasattr(spansh_router, 'update_fleet_carrier_rings_status'):
-            spansh_router.update_fleet_carrier_rings_status()
+        if hasattr(galaxy_gps, 'update_fleet_carrier_rings_status'):
+            galaxy_gps.update_fleet_carrier_rings_status()
         
         # Update fleet carrier Tritium display
-        if hasattr(spansh_router, 'update_fleet_carrier_tritium_display'):
-            spansh_router.update_fleet_carrier_tritium_display()
+        if hasattr(galaxy_gps, 'update_fleet_carrier_tritium_display'):
+            galaxy_gps.update_fleet_carrier_tritium_display()
         
         # Update fleet carrier balance display
-        if hasattr(spansh_router, 'update_fleet_carrier_balance_display'):
-            spansh_router.update_fleet_carrier_balance_display()
+        if hasattr(galaxy_gps, 'update_fleet_carrier_balance_display'):
+            galaxy_gps.update_fleet_carrier_balance_display()
         
         # Update fleet carrier restock warning
-        if hasattr(spansh_router, 'check_fleet_carrier_restock_warning'):
-            spansh_router.check_fleet_carrier_restock_warning()
+        if hasattr(galaxy_gps, 'check_fleet_carrier_restock_warning'):
+            galaxy_gps.check_fleet_carrier_restock_warning()

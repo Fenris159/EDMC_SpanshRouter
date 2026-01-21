@@ -1,6 +1,26 @@
-# EDMC_SpanshRouter Change Log
+# EDMC_GalaxyGPS Change Log
 
 All notable changes to this project will be documented in this file.
+
+## Version Reset Notice
+
+With the rename from SpanshRouter to GalaxyGPS and the significant code evolution, version numbering has been reset to start fresh at 1.0.0. The version history from SpanshRouter (3.4.2 and earlier) is preserved below for reference, but all future versions will follow the new numbering scheme starting from 1.0.0.
+
+---
+
+## 1.0.0 (GalaxyGPS Initial Release)
+
+### Program Name Change
+
+- **Rebranded from SpanshRouter to GalaxyGPS**: The plugin has been renamed to better reflect its expanded functionality and evolved codebase
+- **Version Reset**: Version numbering reset to 1.0.0 to mark the first official release under the GalaxyGPS name
+- **Directory Structure**: Renamed `SpanshRouter/` directory to `GalaxyGPS/` and main file from `SpanshRouter.py` to `GalaxyGPS.py`
+- **Class and Variable Renaming**: Updated all class names from `SpanshRouter` to `GalaxyGPS` and variable names from `spansh_router` to `galaxy_gps` for consistency
+- **Environment Variable**: Updated `EDMC_SPANSH_ROUTER_XCLIP` to `EDMC_GALAXYGPS_XCLIP` for Wayland clipboard support
+
+---
+
+## Previous Versions (SpanshRouter History)
 
 ## 3.4.2
 

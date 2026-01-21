@@ -157,7 +157,7 @@ class AutoCompleter(PlaceHolder):
             try:
                 results = requests.get(url,
                                        params={'q': inp},
-                                       headers={'User-Agent': "EDMC_SpanshRouter 1.0"},
+                                       headers={'User-Agent': "EDMC_GalaxyGPS 1.0"},
                                        timeout=3)
 
                 lista = json.loads(results.content)

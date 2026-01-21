@@ -1,5 +1,5 @@
 """
-EDMC_SpanshRouter - A Package Plugin for Elite Dangerous Market Connector
+EDMC_GalaxyGPS - A Package Plugin for Elite Dangerous Market Connector
 
 This plugin provides route planning and navigation assistance using Spansh routing,
 with fleet carrier tracking via CAPI integration.
