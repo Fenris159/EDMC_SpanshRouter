@@ -4366,6 +4366,40 @@ class GalaxyGPS():
             # theme.update() will automatically apply correct foreground colors based on current theme
             theme.update(table_frame)
             
+            # For highlighted rows, override theme colors with black text for readability (except URLs which stay blue)
+            # This must be done AFTER theme.update() to override theme colors
+            def set_highlighted_text_black():
+                """Set text to black for all labels in highlighted rows, preserving blue URLs."""
+                # Find the highlighted row by looking for labels with yellow background
+                for widget in table_frame.winfo_children():
+                    try:
+                        if isinstance(widget, tk.Label):
+                            widget_bg = widget.cget('bg')
+                            # Check if this label has the yellow highlight background
+                            if widget_bg and widget_bg.lower() in ['#fff9c4', '#fff9c4']:
+                                # This is a highlighted row - set text to black unless it's a URL
+                                current_fg = widget.cget('foreground')
+                                current_cursor = widget.cget('cursor')
+                                # Keep blue links as blue, set everything else to black
+                                if current_fg and current_fg.lower() in ['blue', '#0000ff', '#0000ff']:
+                                    pass  # Keep blue URLs
+                                elif current_cursor == 'hand2':
+                                    pass  # Keep links (hand2 cursor indicates clickable)
+                                else:
+                                    widget.config(foreground="black")
+                        elif isinstance(widget, tk.Button):
+                            # Check buttons too - but only their text/foreground
+                            widget_bg = widget.cget('bg')
+                            if widget_bg and widget_bg.lower() in ['#fff9c4', '#fff9c4']:
+                                current_fg = widget.cget('foreground')
+                                if current_fg and current_fg.lower() not in ['blue', '#0000ff', '#0000ff']:
+                                    widget.config(foreground="black")
+                    except:
+                        pass
+            
+            # Apply black text to highlighted rows AFTER theme.update()
+            set_highlighted_text_black()
+            
             # Style ttk.Separator widgets - they need special handling via ttk.Style
             # Separators don't automatically get themed, so we style them to match theme foreground color
             try:
