@@ -305,7 +305,6 @@ With the rename from SpanshRouter to GalaxyGPS and the significant code evolutio
 
 ### UI/UX Improvements
 
-- **Plugin Display Priority**: Configured as Package Plugin to appear at top of EDMC plugin section
 - **Hyperlinked Elements**: Carrier names, system names, and other elements link to Inara.cz for quick access
 - **Enhanced Window Management**: All popup windows (View Route, View All Carriers) feature proper auto-sizing and scrolling
 - **Improved Data Presentation**: Better formatting for numbers, checkboxes for boolean values, and organized column layouts

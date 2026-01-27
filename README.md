@@ -309,11 +309,15 @@ All CSV files use UTF-8 encoding with BOM and persist between EDMC restarts. See
 
 ### Plugin Priority
 
-This plugin is configured to load **first** in EDMarketConnector, ensuring it appears at the top of the plugin list. This is achieved by:
+The plugin appears as **GalaxyGPS** in the EDMC plugin list (alphabetically with your other plugins). If you prefer navigation to load above other plugins, you can manually force it to sort first:
 
-- Being a **Package Plugin** (contains both `__init__.py` and `load.py`)
-- Returning `'!GalaxyGPS'` from `plugin_start3()`, which sorts first alphabetically
-- The folder name doesn't affect load order - you can name it anything you want
+1. Open your EDMC plugins folder and go into the **`EDMC_GalaxyGPS`** folder.
+2. Open **`load.py`** in a text editor.
+3. Find the line `return 'GalaxyGPS'` (inside the `plugin_start` function, near the end).
+4. Change it to `return '!GalaxyGPS'` (add an exclamation mark before the name).
+5. Save the file and restart EDMC.
+
+EDMC sorts plugins alphabetically by the name returned from the plugin. The leading `!` sorts before letters, so GalaxyGPS will appear at the top of the list. This is an optional local change; plugin updates may overwrite it, so you would need to reapply the change after updating if you want to keep it at the top.
 
 ### Public API
 
